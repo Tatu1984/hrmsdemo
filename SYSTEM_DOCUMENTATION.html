@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS System - Complete Documentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #1e40af;
+            border-bottom: 2px solid #93c5fd;
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 2em;
+        }
+        h3 {
+            color: #1e3a8a;
+            margin-top: 30px;
+            font-size: 1.5em;
+        }
+        h4 {
+            color: #1e293b;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .toc {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .toc h2 {
+            margin-top: 0;
+            border: none;
+        }
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #2563eb;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .feature-list {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .feature-list li {
+            margin: 8px 0;
+        }
+        .diagram {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .flow-box {
+            border: 2px solid #2563eb;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: white;
+        }
+        .flow-arrow {
+            text-align: center;
+            color: #2563eb;
+            font-size: 1.5em;
+            margin: 5px 0;
+        }
+        a {
+            color: #2563eb;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+
+<h1>HRMS System - Complete Documentation</h1>
+
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><a href="#system-overview">1. System Overview</a></li>
+        <li><a href="#technology-stack">2. Technology Stack</a></li>
+        <li><a href="#architecture">3. Architecture</a></li>
+        <li><a href="#database-schema">4. Database Schema</a></li>
+        <li><a href="#authentication">5. Authentication & Authorization</a></li>
+        <li><a href="#core-modules">6. Core Modules</a></li>
+        <li><a href="#api-endpoints">7. API Endpoints</a></li>
+        <li><a href="#system-flows">8. System Flows</a></li>
+        <li><a href="#deployment">9. Deployment Guide</a></li>
+        <li><a href="#development">10. Development Guide</a></li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="system-overview">1. System Overview</h2>
+
+<table>
+    <tr>
+        <td><strong>Project Name</strong></td>
+        <td>HRMS (Human Resource Management System)</td>
+    </tr>
+    <tr>
+        <td><strong>Organization</strong></td>
+        <td>Infiniti Tech Partners</td>
+    </tr>
+    <tr>
+        <td><strong>Version</strong></td>
+        <td>1.0.0</td>
+    </tr>
+    <tr>
+        <td><strong>Platform</strong></td>
+        <td>Web Application (Next.js 15.5.6)</td>
+    </tr>
+</table>
+
+<h3>Purpose</h3>
+<p>A comprehensive HRMS solution for managing employees, attendance, payroll, projects, sales, and company operations.</p>
+
+<h3>Key Features</h3>
+<div class="feature-list">
+    <ul>
+        <li>✅ Employee Management (CRUD operations, KYC documents, bank details)</li>
+        <li>✅ Real-time Attendance Tracking with Activity Heartbeat Monitoring</li>
+        <li>✅ Employee Status Dashboard (Active/Idle/Away/Offline)</li>
+        <li>✅ Automated Payroll Processing</li>
+        <li>✅ Project & Task Management</li>
+        <li>✅ Sales CRM (Leads, Sales tracking)</li>
+        <li>✅ Leave Management</li>
+        <li>✅ HR Documents & Policies</li>
+        <li>✅ Accounts & Invoicing</li>
+        <li>✅ Internal Messaging System</li>
+        <li>✅ Reports & Analytics</li>
+        <li>✅ Integrations (Azure DevOps, Asana, Confluence)</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="technology-stack">2. Technology Stack</h2>
+
+<h3>Frontend</h3>
+<table>
+    <tr>
+        <th>Technology</th>
+        <th>Version/Details</th>
+    </tr>
+    <tr>
+        <td>Framework</td>
+        <td>Next.js 15.5.6 (App Router)</td>
+    </tr>
+    <tr>
+        <td>Language</td>
+        <td>TypeScript</td>
+    </tr>
+    <tr>
+        <td>UI Library</td>
+        <td>React 18</td>
+    </tr>
+    <tr>
+        <td>Styling</td>
+        <td>Tailwind CSS</td>
+    </tr>
+    <tr>
+        <td>Components</td>
+        <td>shadcn/ui (Radix UI primitives)</td>
+    </tr>
+    <tr>
+        <td>Icons</td>
+        <td>Lucide React</td>
+    </tr>
+    <tr>
+        <td>Date Handling</td>
+        <td>date-fns</td>
+    </tr>
+</table>
+
+<h3>Backend</h3>
+<table>
+    <tr>
+        <th>Technology</th>
+        <th>Version/Details</th>
+    </tr>
+    <tr>
+        <td>Runtime</td>
+        <td>Node.js</td>
+    </tr>
+    <tr>
+        <td>Framework</td>
+        <td>Next.js API Routes (App Router)</td>
+    </tr>
+    <tr>
+        <td>Authentication</td>
+        <td>JWT (jose library)</td>
+    </tr>
+    <tr>
+        <td>Password Hashing</td>
+        <td>bcryptjs</td>
+    </tr>
+</table>
+
+<h3>Database</h3>
+<table>
+    <tr>
+        <th>Technology</th>
+        <th>Version/Details</th>
+    </tr>
+    <tr>
+        <td>Database</td>
+        <td>PostgreSQL (Neon Cloud)</td>
+    </tr>
+    <tr>
+        <td>ORM</td>
+        <td>Prisma 6.18.0</td>
+    </tr>
+    <tr>
+        <td>Connection</td>
+        <td>Serverless (Neon)</td>
+    </tr>
+</table>
+
+<h3>Deployment</h3>
+<table>
+    <tr>
+        <th>Platform</th>
+        <th>Environment</th>
+    </tr>
+    <tr>
+        <td>Vercel</td>
+        <td>Production</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="architecture">3. Architecture</h2>
+
+<h3>System Architecture Diagram</h3>
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Admin UI   │  │ Employee UI  │  │  Manager UI  │          │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
+│         │                 │                  │                   │
+└─────────┼─────────────────┼──────────────────┼───────────────────┘
+          │                 │                  │
+          └─────────────────┴──────────────────┘
+                            │
+┌───────────────────────────┼───────────────────────────────────────┐
+│                   APPLICATION LAYER (Next.js)                     │
+│  ┌────────────────────────┴────────────────────────┐             │
+│  │         Server Components (SSR)                 │             │
+│  │  • Authentication Check                         │             │
+│  │  • Data Fetching                                │             │
+│  │  • Role-based Access Control                    │             │
+│  └────────────────────────┬────────────────────────┘             │
+│                           │                                       │
+│  ┌────────────────────────┴────────────────────────┐             │
+│  │         Client Components                       │             │
+│  │  • Interactive UI                               │             │
+│  │  • Activity Heartbeat Tracker                   │             │
+│  │  • Real-time Status Updates                     │             │
+│  └────────────────────────┬────────────────────────┘             │
+│                           │                                       │
+│  ┌────────────────────────┴────────────────────────┐             │
+│  │         API Routes (REST)                       │             │
+│  │  • /api/attendance                              │             │
+│  │  • /api/attendance/heartbeat                    │             │
+│  │  • /api/employee-status                         │             │
+│  │  • /api/employees                               │             │
+│  │  • /api/payroll                                 │             │
+│  │  • /api/projects                                │             │
+│  │  • /api/sales                                   │             │
+│  │  • /api/auth                                    │             │
+│  └────────────────────────┬────────────────────────┘             │
+└───────────────────────────┼───────────────────────────────────────┘
+                            │
+┌───────────────────────────┼───────────────────────────────────────┐
+│                   DATA LAYER (Prisma ORM)                         │
+│  ┌────────────────────────┴────────────────────────┐             │
+│  │         Prisma Client                           │             │
+│  │  • Type-safe Database Queries                   │             │
+│  │  • Schema Migrations                            │             │
+│  │  • Connection Pooling                           │             │
+│  └────────────────────────┬────────────────────────┘             │
+└───────────────────────────┼───────────────────────────────────────┘
+                            │
+┌───────────────────────────┼───────────────────────────────────────┐
+│                   DATABASE LAYER (PostgreSQL)                     │
+│  ┌────────────────────────┴────────────────────────┐             │
+│  │         Neon PostgreSQL Database                │             │
+│  │  • 30+ Tables                                   │             │
+│  │  • Relational Data                              │             │
+│  │  • Indexes & Constraints                        │             │
+│  └─────────────────────────────────────────────────┘             │
+└───────────────────────────────────────────────────────────────────┘
+</div>
+
+<h3>Folder Structure</h3>
+<pre><code>hrms1/
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   └── migrations/            # Database migrations
+├── src/
+│   ├── app/
+│   │   ├── (admin)/admin/     # Admin routes (protected)
+│   │   ├── (employee)/employee/ # Employee routes (protected)
+│   │   ├── (manager)/manager/ # Manager routes (protected)
+│   │   ├── api/               # API routes
+│   │   │   ├── attendance/
+│   │   │   │   ├── route.ts   # Main attendance API
+│   │   │   │   └── heartbeat/route.ts # Heartbeat tracking
+│   │   │   ├── employee-status/route.ts
+│   │   │   ├── employees/route.ts
+│   │   │   ├── payroll/route.ts
+│   │   │   ├── auth/
+│   │   │   └── ...
+│   │   ├── login/
+│   │   └── layout.tsx
+│   ├── components/
+│   │   ├── admin/             # Admin components
+│   │   ├── employee/          # Employee components
+│   │   │   ├── ActivityHeartbeat.tsx
+│   │   │   └── AttendanceControls.tsx
+│   │   ├── shared/            # Shared components
+│   │   │   ├── sidebar.tsx
+│   │   │   └── navbar.tsx
+│   │   └── ui/                # shadcn UI components
+│   ├── lib/
+│   │   ├── auth.ts            # Authentication utilities
+│   │   ├── db.ts              # Prisma client
+│   │   └── utils.ts           # Helper functions
+│   └── types/
+│       └── index.ts           # TypeScript types
+├── public/                    # Static assets
+├── .env                       # Environment variables
+├── next.config.ts             # Next.js configuration
+├── tailwind.config.ts         # Tailwind CSS configuration
+└── package.json               # Dependencies
+</code></pre>
+
+<div class="page-break"></div>
+
+<h2 id="database-schema">4. Database Schema</h2>
+
+<h3>Core Tables</h3>
+
+<h4>User</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td colspan="3">Authentication and user accounts</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, email, username, password, role, employeeId</td>
+    </tr>
+    <tr>
+        <th>Relations</th>
+        <td>One-to-One with Employee</td>
+    </tr>
+</table>
+
+<h4>Employee</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Employee master data</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, employeeId, name, email, salary, department, designation</td>
+    </tr>
+    <tr>
+        <th>Relations</th>
+        <td>
+            • One-to-One with User<br>
+            • One-to-Many with Attendance, Leave, Payroll, Tasks
+        </td>
+    </tr>
+</table>
+
+<h4>Attendance</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Daily attendance tracking</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, employeeId, date, punchIn, punchOut, totalHours, breakDuration, idleTime, status</td>
+    </tr>
+    <tr>
+        <th>Relations</th>
+        <td>
+            • Many-to-One with Employee<br>
+            • One-to-Many with ActivityLog
+        </td>
+    </tr>
+</table>
+
+<h4>ActivityLog</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Track employee activity heartbeats</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, attendanceId, timestamp, active</td>
+    </tr>
+    <tr>
+        <th>Relations</th>
+        <td>Many-to-One with Attendance</td>
+    </tr>
+</table>
+
+<h4>Payroll</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Monthly salary processing</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, employeeId, month, year, basicSalary, netSalary, totalDeductions, status</td>
+    </tr>
+</table>
+
+<h4>Project</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Project management</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, projectId, name, status, budget, milestones</td>
+    </tr>
+</table>
+
+<h4>Task</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Task assignment and tracking</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, projectId, assignedTo, title, status, priority</td>
+    </tr>
+</table>
+
+<h4>Lead & Sale</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>CRM and sales tracking</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>Lead number, company details, status, conversion tracking</td>
+    </tr>
+</table>
+
+<h4>Leave</h4>
+<table>
+    <tr>
+        <th>Purpose</th>
+        <td>Leave management</td>
+    </tr>
+    <tr>
+        <th>Key Fields</th>
+        <td>id, employeeId, leaveType, startDate, endDate, status</td>
+    </tr>
+</table>
+
+<div class="info">
+    <strong>Complete Schema Reference:</strong> See <code>prisma/schema.prisma</code> for full schema with 30+ tables.
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="authentication">5. Authentication & Authorization</h2>
+
+<h3>Authentication Flow</h3>
+
+<div class="flow-box">
+    <strong>Step 1:</strong> User enters credentials
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 2:</strong> POST /api/auth/login
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 3:</strong> Validate username/password with database<br>
+    Check User.password (bcrypt hash)
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 4:</strong> Generate JWT token with payload:<br>
+    { userId, email, role, employeeId, name }
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 5:</strong> Set HTTP-only cookie: "session"<br>
+    • Expires: 7 days<br>
+    • Secure: true (production)<br>
+    • SameSite: lax
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 6:</strong> Redirect based on role:<br>
+    • ADMIN → /admin/dashboard<br>
+    • EMPLOYEE → /employee/dashboard<br>
+    • MANAGER → /manager/dashboard
+</div>
+
+<h3>Role-Based Access Control (RBAC)</h3>
+<table>
+    <tr>
+        <th>Role</th>
+        <th>Access Level</th>
+    </tr>
+    <tr>
+        <td>ADMIN</td>
+        <td>Full system access (all modules)</td>
+    </tr>
+    <tr>
+        <td>MANAGER</td>
+        <td>Team management, attendance editing, reports</td>
+    </tr>
+    <tr>
+        <td>EMPLOYEE</td>
+        <td>Personal dashboard, attendance, tasks, leaves</td>
+    </tr>
+</table>
+
+<h3>JWT Payload Structure</h3>
+<pre><code>{
+  userId: string;
+  email: string;
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  employeeId?: string;
+  name: string;
+  permissions?: any;
+}</code></pre>
+
+<table>
+    <tr>
+        <th>Property</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td>Token Expiration</td>
+        <td>7 days</td>
+    </tr>
+    <tr>
+        <td>Storage</td>
+        <td>HTTP-only cookie</td>
+    </tr>
+    <tr>
+        <td>Refresh</td>
+        <td>Not implemented (user re-login required)</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="core-modules">6. Core Modules</h2>
+
+<h3>6.1. Attendance Management</h3>
+
+<h4>Features</h4>
+<ul>
+    <li>Punch In/Out tracking</li>
+    <li>Break time management</li>
+    <li>Automatic status calculation (PRESENT/HALF_DAY/ABSENT)</li>
+    <li>Real-time activity heartbeat monitoring</li>
+    <li>Idle time detection</li>
+    <li>Calendar view for editing</li>
+</ul>
+
+<h4>Attendance Status Logic</h4>
+<div class="diagram">
+Status Calculation:
+┌─────────────────────────────────────────────────┐
+│ Total Hours = (Punch Out - Punch In) - Breaks  │
+│                                                 │
+│ IF Total Hours >= 6.0 → PRESENT                │
+│ IF Total Hours < 6.0  → HALF_DAY               │
+│ IF No Punch In        → ABSENT                 │
+│ IF Approved Leave     → LEAVE                  │
+│ IF Holiday            → HOLIDAY                │
+│ IF Weekend            → WEEKEND                │
+└─────────────────────────────────────────────────┘
+</div>
+
+<h4>Activity Heartbeat System</h4>
+
+<div class="success">
+    <strong>How it works:</strong>
+    <ol>
+        <li>Employee punches in → ActivityHeartbeat component mounts</li>
+        <li>Component listens for user activity (mouse, keyboard, clicks, scrolling)</li>
+        <li>Every 3 minutes, sends heartbeat to server with active status</li>
+        <li>Server creates ActivityLog entry with timestamp</li>
+        <li>System calculates idle time from gaps > 5 minutes between heartbeats</li>
+        <li>Admin can view real-time status (ACTIVE/IDLE/AWAY/OFFLINE)</li>
+    </ol>
+</div>
+
+<h4>Files</h4>
+<ul>
+    <li><code>/api/attendance/route.ts</code> - Main attendance CRUD</li>
+    <li><code>/api/attendance/heartbeat/route.ts</code> - Heartbeat tracking</li>
+    <li><code>/api/employee-status/route.ts</code> - Real-time status</li>
+    <li><code>/components/employee/ActivityHeartbeat.tsx</code> - Client tracker</li>
+    <li><code>/components/employee/AttendanceControls.tsx</code> - Punch buttons</li>
+    <li><code>/app/(admin)/admin/employee-status/page.tsx</code> - Status dashboard</li>
+    <li><code>/app/(admin)/admin/attendance/edit/page.tsx</code> - Edit attendance</li>
+</ul>
+
+<h3>6.2. Payroll Management</h3>
+
+<h4>Salary Types</h4>
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>FIXED</td>
+        <td>Fixed monthly salary</td>
+    </tr>
+    <tr>
+        <td>VARIABLE</td>
+        <td>Base salary + variable component (commission/incentive)</td>
+    </tr>
+</table>
+
+<h4>Payroll Calculation Steps</h4>
+<ol>
+    <li><strong>Calculate Days Present:</strong> Count PRESENT days + (HALF_DAY × 0.5)</li>
+    <li><strong>Calculate Basic Payable:</strong> (basicSalary / workingDays) × daysPresent</li>
+    <li><strong>Calculate Variable Payable:</strong> Based on sales target achievement (if applicable)</li>
+    <li><strong>Calculate Gross Salary:</strong> basicPayable + variablePayable</li>
+    <li><strong>Calculate Deductions:</strong> Professional Tax + TDS + Penalties + Advance + Others</li>
+    <li><strong>Calculate Net Salary:</strong> grossSalary - totalDeductions</li>
+</ol>
+
+<h4>Files</h4>
+<ul>
+    <li><code>/api/payroll/route.ts</code> - Payroll CRUD and calculations</li>
+    <li><code>/app/(admin)/admin/payroll/page.tsx</code> - Payroll management UI</li>
+</ul>
+
+<h3>6.3. Employee Management</h3>
+
+<h4>Features</h4>
+<ul>
+    <li>Employee CRUD operations</li>
+    <li>Profile management with photo upload</li>
+    <li>KYC documents (Aadhar, PAN)</li>
+    <li>Bank account details</li>
+    <li>Document management</li>
+    <li>Reporting hierarchy</li>
+</ul>
+
+<h4>Files</h4>
+<ul>
+    <li><code>/api/employees/route.ts</code> - Employee API</li>
+    <li><code>/app/(admin)/admin/employees/page.tsx</code> - Employee list</li>
+    <li><code>/app/(admin)/admin/employees/[id]/page.tsx</code> - Employee details</li>
+</ul>
+
+<h3>6.4. Project & Task Management</h3>
+
+<h4>Project Types</h4>
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>MILESTONE</td>
+        <td>Fixed milestones with payment schedules</td>
+    </tr>
+    <tr>
+        <td>RETAINER</td>
+        <td>Monthly retainer contracts</td>
+    </tr>
+</table>
+
+<h4>Features</h4>
+<ul>
+    <li>Project creation with SoW upload</li>
+    <li>Milestone tracking</li>
+    <li>Task assignment</li>
+    <li>Task status updates</li>
+    <li>Team member assignment</li>
+</ul>
+
+<h3>6.5. Sales CRM</h3>
+
+<h4>Lead Statuses</h4>
+<ul>
+    <li>NEW</li>
+    <li>COLD_CALL_BACK</li>
+    <li>WARM</li>
+    <li>PROSPECT</li>
+    <li>SALE_MADE</li>
+    <li>CONVERTED</li>
+    <li>LOST</li>
+    <li>HOLD</li>
+    <li>DORMANT</li>
+</ul>
+
+<h4>Sales Flow</h4>
+<div class="diagram">Lead Created → Nurturing → Converted to Sale → Project Created</div>
+
+<h3>6.6. Leave Management</h3>
+
+<h4>Leave Types</h4>
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>SICK</td>
+        <td>Sick leave</td>
+    </tr>
+    <tr>
+        <td>CASUAL</td>
+        <td>Casual leave</td>
+    </tr>
+    <tr>
+        <td>EARNED</td>
+        <td>Earned leave</td>
+    </tr>
+    <tr>
+        <td>UNPAID</td>
+        <td>Unpaid leave</td>
+    </tr>
+</table>
+
+<h4>Leave Statuses</h4>
+<ul>
+    <li>PENDING</li>
+    <li>APPROVED</li>
+    <li>REJECTED</li>
+    <li>HOLD</li>
+    <li>CANCELLED</li>
+</ul>
+
+<h3>6.7. Integrations</h3>
+
+<h4>Supported Platforms</h4>
+<ul>
+    <li>Azure DevOps (Work items, repos, commits)</li>
+    <li>Asana (Tasks)</li>
+    <li>Confluence (Documentation)</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="api-endpoints">7. API Endpoints</h2>
+
+<h3>Authentication</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/auth/login</td>
+        <td>User login</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/auth/logout</td>
+        <td>User logout</td>
+    </tr>
+</table>
+
+<h3>Attendance</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/attendance</td>
+        <td>Get attendance records (with filters)</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/attendance</td>
+        <td>Punch in/out, break start/end</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/attendance</td>
+        <td>Update attendance record</td>
+    </tr>
+    <tr>
+        <td>DELETE</td>
+        <td>/api/attendance</td>
+        <td>Delete attendance record</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/attendance/heartbeat</td>
+        <td>Record activity heartbeat</td>
+    </tr>
+</table>
+
+<h3>Employee Status</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/employee-status</td>
+        <td>Get real-time employee status</td>
+    </tr>
+</table>
+
+<h3>Employees</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/employees</td>
+        <td>List all employees</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/employees</td>
+        <td>Create employee</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/employees/:id</td>
+        <td>Update employee</td>
+    </tr>
+    <tr>
+        <td>DELETE</td>
+        <td>/api/employees/:id</td>
+        <td>Delete employee</td>
+    </tr>
+</table>
+
+<h3>Payroll</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/payroll</td>
+        <td>Get payroll records</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/payroll</td>
+        <td>Generate payroll</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/payroll/:id</td>
+        <td>Update payroll</td>
+    </tr>
+    <tr>
+        <td>DELETE</td>
+        <td>/api/payroll/:id</td>
+        <td>Delete payroll</td>
+    </tr>
+</table>
+
+<h3>Projects & Tasks</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/projects</td>
+        <td>List projects</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/projects</td>
+        <td>Create project</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/tasks</td>
+        <td>List tasks</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/tasks</td>
+        <td>Create task</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/tasks/:id</td>
+        <td>Update task status</td>
+    </tr>
+</table>
+
+<h3>Sales CRM</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/leads</td>
+        <td>List leads</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/leads</td>
+        <td>Create lead</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/leads/:id</td>
+        <td>Update lead</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/leads/:id/convert</td>
+        <td>Convert lead to sale</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/sales</td>
+        <td>List sales</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/sales</td>
+        <td>Create sale</td>
+    </tr>
+</table>
+
+<h3>Leaves</h3>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/leaves</td>
+        <td>Get leave requests</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/leaves</td>
+        <td>Apply for leave</td>
+    </tr>
+    <tr>
+        <td>PUT</td>
+        <td>/api/leaves/:id</td>
+        <td>Approve/reject leave</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="system-flows">8. System Flows</h2>
+
+<h3>8.1. Daily Attendance Flow</h3>
+
+<div class="flow-box">
+    <strong>Morning - Employee Punch In</strong><br>
+    1. Employee clicks "Punch In"<br>
+    2. POST /api/attendance {action: "punch-in"}<br>
+    3. Create Attendance record in database<br>
+    4. Start ActivityHeartbeat tracker (client-side)
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Every 3 Minutes - Heartbeat</strong><br>
+    1. Check user activity (mouse/keyboard)<br>
+    2. POST /api/attendance/heartbeat {active: true/false}<br>
+    3. Create ActivityLog entry<br>
+    4. Calculate and update idle time
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Break Time (Optional)</strong><br>
+    1. Click "Start Break" → Update breakStart<br>
+    2. Click "End Break" → Update breakEnd
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Evening - Employee Punch Out</strong><br>
+    1. Employee clicks "Punch Out"<br>
+    2. POST /api/attendance {action: "punch-out"}<br>
+    3. Query activity logs<br>
+    4. Calculate: totalHours, idleTime, status<br>
+    5. Update punchOut, totalHours, idleTime, status<br>
+    6. Stop ActivityHeartbeat tracker
+</div>
+
+<h3>8.2. Payroll Generation Flow</h3>
+
+<div class="flow-box">
+    <strong>Step 1:</strong> Admin selects Month/Year and clicks "Generate Payroll"
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 2:</strong> Check if employee already has payroll for this month<br>
+    If YES → Skip (already exists)<br>
+    If NO → Continue
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 3:</strong> Fetch employee salary configuration and attendance for the month
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 4:</strong> Count Present/Half-day/Absent days
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 5:</strong> Calculate based on salary type:<br>
+    • FIXED: basicPayable = salary/30 × daysPresent<br>
+    • VARIABLE: basicPayable + variablePayable (based on target)
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 6:</strong> Calculate Deductions (P.Tax, TDS, Penalties, etc.)
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 7:</strong> netSalary = gross - deductions
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 8:</strong> Create Payroll record with status: PENDING
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 9:</strong> Admin reviews and approves → Update status: APPROVED
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 10:</strong> Mark as PAID after payment is processed
+</div>
+
+<h3>8.3. Real-time Employee Status Flow</h3>
+
+<div class="flow-box">
+    <strong>Step 1:</strong> Admin opens Employee Status page
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 2:</strong> GET /api/employee-status
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 3:</strong> For each employee:<br>
+    • Fetch today's attendance<br>
+    • Get latest activity log<br>
+    • Calculate minutes since last activity
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 4:</strong> Determine status:<br>
+    • 0-5 min ago → ACTIVE 🟢<br>
+    • 5-15 min ago → IDLE 🟡<br>
+    • 15+ min ago → AWAY 🟠<br>
+    • Not punched in → OFFLINE ⚫
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 5:</strong> Display status grid with color-coded badges
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 6:</strong> Auto-refresh every 30 seconds
+</div>
+
+<h3>8.4. Leave Request Flow</h3>
+
+<div class="flow-box">
+    <strong>Step 1:</strong> Employee submits leave request
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 2:</strong> Create Leave record (status: PENDING)
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 3:</strong> Notification sent to Manager/Admin
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 4:</strong> Manager/Admin reviews and approves/rejects/holds with comment
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 5:</strong> Update Leave.status + adminComment
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">
+    <strong>Step 6:</strong> If APPROVED → Mark attendance dates as LEAVE<br>
+    Notification sent to employee
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="deployment">9. Deployment Guide</h2>
+
+<h3>Prerequisites</h3>
+<ul>
+    <li>Node.js 18+ installed</li>
+    <li>PostgreSQL database (Neon recommended)</li>
+    <li>Vercel account (for deployment)</li>
+</ul>
+
+<h3>Environment Variables</h3>
+
+<p>Create <code>.env</code> file:</p>
+
+<pre><code># Database
+DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+
+# Authentication
+JWT_SECRET="your-super-secret-jwt-key-minimum-32-characters-long"
+
+# App
+NODE_ENV="production"
+NEXT_PUBLIC_APP_URL="https://your-app.vercel.app"
+</code></pre>
+
+<h3>Database Setup</h3>
+
+<ol>
+    <li><strong>Install dependencies:</strong>
+        <pre><code>npm install</code></pre>
+    </li>
+    <li><strong>Generate Prisma Client:</strong>
+        <pre><code>npx prisma generate</code></pre>
+    </li>
+    <li><strong>Run migrations:</strong>
+        <pre><code>npx prisma migrate deploy</code></pre>
+    </li>
+    <li><strong>Seed database (optional):</strong>
+        <pre><code>npm run seed</code></pre>
+    </li>
+</ol>
+
+<h3>Local Development</h3>
+
+<pre><code># Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Open http://localhost:3000
+</code></pre>
+
+<h3>Production Deployment (Vercel)</h3>
+
+<ol>
+    <li>Push code to GitHub</li>
+    <li>Import project to Vercel:
+        <ul>
+            <li>Connect GitHub repository</li>
+            <li>Add environment variables</li>
+            <li>Deploy</li>
+        </ul>
+    </li>
+    <li>Configure domain (optional)</li>
+    <li>Set up database connection pooling (handled by Prisma + Neon)</li>
+</ol>
+
+<h3>Default Login Credentials</h3>
+
+<table>
+    <tr>
+        <th>Username</th>
+        <th>Password</th>
+        <th>Role</th>
+    </tr>
+    <tr>
+        <td>admin</td>
+        <td>12345678</td>
+        <td>ADMIN</td>
+    </tr>
+    <tr>
+        <td>emp002</td>
+        <td>12345678</td>
+        <td>EMPLOYEE</td>
+    </tr>
+</table>
+
+<div class="warning">
+    <strong>⚠️ IMPORTANT:</strong> Change default passwords immediately in production!
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="development">10. Development Guide</h2>
+
+<h3>Adding a New Module</h3>
+
+<h4>Step 1: Create Database Schema</h4>
+<p>Edit <code>prisma/schema.prisma</code>:</p>
+<pre><code>model NewModule {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+</code></pre>
+
+<h4>Step 2: Run Migration</h4>
+<pre><code>npx prisma migrate dev --name add_new_module
+</code></pre>
+
+<h4>Step 3: Create API Route</h4>
+<p>Create <code>src/app/api/new-module/route.ts</code></p>
+
+<h4>Step 4: Create UI Page</h4>
+<p>Create <code>src/app/(admin)/admin/new-module/page.tsx</code></p>
+
+<h4>Step 5: Add to Sidebar</h4>
+<p>Edit <code>src/app/(admin)/admin/layout.tsx</code></p>
+
+<h3>Best Practices</h3>
+
+<h4>1. Authentication</h4>
+<ul>
+    <li>Always check <code>getSession()</code> in protected routes</li>
+    <li>Verify user role for admin-only operations</li>
+    <li>Use JWT for stateless authentication</li>
+</ul>
+
+<h4>2. Database Queries</h4>
+<ul>
+    <li>Use Prisma Client for type safety</li>
+    <li>Add indexes for frequently queried fields</li>
+    <li>Use transactions for atomic operations</li>
+    <li>Implement pagination for large datasets</li>
+</ul>
+
+<h4>3. Error Handling</h4>
+<pre><code>try {
+  const data = await prisma.model.findMany();
+  return NextResponse.json(data);
+} catch (error: any) {
+  console.error('Error:', error);
+  return NextResponse.json(
+    { error: 'Failed to fetch data', details: error.message },
+    { status: 500 }
+  );
+}
+</code></pre>
+
+<h4>4. Date Handling</h4>
+<pre><code>// Always use date-fns for consistency
+import { format, startOfDay, endOfDay } from 'date-fns';
+
+// For date range queries
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+const records = await prisma.attendance.findMany({
+  where: {
+    date: {
+      gte: today,
+      lt: tomorrow,
+    },
+  },
+});
+</code></pre>
+
+<h3>Troubleshooting</h3>
+
+<h4>Common Issues</h4>
+
+<table>
+    <tr>
+        <th>Issue</th>
+        <th>Solution</th>
+    </tr>
+    <tr>
+        <td>Attendance showing 4000+ hours</td>
+        <td>Run data cleanup script to recalculate totalHours from punchIn/punchOut</td>
+    </tr>
+    <tr>
+        <td>Heartbeat not tracking</td>
+        <td>Check browser console, ensure employee is punched in, verify ActivityHeartbeat component is mounted</td>
+    </tr>
+    <tr>
+        <td>Punch Out button re-appearing</td>
+        <td>Fixed - query now filters by today's date range only</td>
+    </tr>
+    <tr>
+        <td>Session expired</td>
+        <td>JWT expires after 7 days - user needs to login again</td>
+    </tr>
+</table>
+
+<h3>Performance Optimization</h3>
+
+<h4>1. Database Indexes</h4>
+<p>Ensure indexes exist on frequently queried fields:</p>
+<pre><code>@@index([employeeId])
+@@index([date])
+@@index([status])
+</code></pre>
+
+<h4>2. API Response Caching</h4>
+<pre><code>// Add cache headers for static data
+return NextResponse.json(data, {
+  headers: {
+    'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'
+  }
+});
+</code></pre>
+
+<h4>3. Pagination</h4>
+<pre><code>// For large datasets
+const page = Number(searchParams.get('page')) || 1;
+const limit = 50;
+
+const records = await prisma.model.findMany({
+  skip: (page - 1) * limit,
+  take: limit,
+});
+</code></pre>
+
+<div class="page-break"></div>
+
+<h2>Future Enhancements</h2>
+
+<div class="info">
+    <h3>AzureINFPS - Scheduled for December</h3>
+    <p>Complete Azure DevOps clone system with:</p>
+    <ul>
+        <li><strong>Azure Boards:</strong> Work item tracking, Kanban boards, Sprints</li>
+        <li><strong>Azure Repos:</strong> Git repositories, Pull requests, Code review</li>
+        <li><strong>Azure Pipelines:</strong> CI/CD automation</li>
+        <li><strong>Azure Test Plans:</strong> Test management</li>
+        <li><strong>Azure Artifacts:</strong> Package management</li>
+        <li><strong>Wiki:</strong> Documentation system</li>
+    </ul>
+    <p>See separate documentation: <code>AZURE_INFPS_FEATURES.md</code></p>
+</div>
+
+<h2>Changelog</h2>
+
+<h3>Version 1.0.0 (November 2024)</h3>
+<div class="success">
+    <ul>
+        <li>✅ Initial system setup</li>
+        <li>✅ Employee management module</li>
+        <li>✅ Attendance tracking with punch in/out</li>
+        <li>✅ Real-time activity heartbeat monitoring</li>
+        <li>✅ Employee status dashboard (Active/Idle/Away/Offline)</li>
+        <li>✅ Automated payroll processing</li>
+        <li>✅ Project & task management</li>
+        <li>✅ Sales CRM (Leads & Sales)</li>
+        <li>✅ Leave management</li>
+        <li>✅ HR documents & policies</li>
+        <li>✅ Accounts & invoicing</li>
+        <li>✅ Internal messaging system</li>
+        <li>✅ Reports & analytics</li>
+        <li>✅ Azure DevOps/Asana/Confluence integrations</li>
+        <li>✅ Fixed: Half-day logic (< 6 hours = HALF_DAY)</li>
+        <li>✅ Fixed: Punch-out re-popup issue</li>
+        <li>✅ Fixed: Corrupted total hours data</li>
+        <li>✅ Fixed: Activity heartbeat tracking</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Support & Contact</h2>
+
+<table>
+    <tr>
+        <th>Property</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td>Developer</td>
+        <td>Claude (Anthropic AI)</td>
+    </tr>
+    <tr>
+        <td>Organization</td>
+        <td>Infiniti Tech Partners</td>
+    </tr>
+    <tr>
+        <td>Project Start</td>
+        <td>November 2024</td>
+    </tr>
+    <tr>
+        <td>Current Version</td>
+        <td>1.0.0</td>
+    </tr>
+</table>
+
+<h3>Resources</h3>
+<ul>
+    <li>GitHub Repository: [Link]</li>
+    <li>Production URL: [Link]</li>
+    <li>Neon Database Dashboard: [Link]</li>
+    <li>Vercel Dashboard: [Link]</li>
+</ul>
+
+<hr>
+
+<p style="text-align: center; margin-top: 50px; color: #64748b;">
+    <strong>End of Documentation</strong><br>
+    Generated: November 2024<br>
+    HRMS System v1.0.0 - Infiniti Tech Partners
+</p>
+
+</body>
+</html>

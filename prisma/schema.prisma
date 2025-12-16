@@ -1,0 +1,1078 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// prisma/schema.prisma
+datasource db {
+  provider  = "sqlite"
+  url       = env("DATABASE_URL")
+}
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  role          Role      @default(EMPLOYEE)
+  employeeId    String?   @unique
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+  permissions   Json?     // Granular section-level permissions
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+}
+
+model Employee {
+  id                String      @id @default(cuid())
+  employeeId        String      @unique
+  name              String
+  email             String      @unique
+  altEmail          String?     // Alternate email address
+  phone             String
+  altPhone          String?
+  emergencyContactName  String?  // Emergency contact person name
+  emergencyContactPhone String?  // Emergency contact phone
+  emergencyContactRelation String? // Relationship with emergency contact
+  address           String
+  designation       String
+  salaryType        SalaryType  @default(FIXED)
+  salary            Float       // Total CTC for Fixed, Base for Variable
+  variablePay       Float?      // Only for Variable salary type
+  department        String
+  employeeType      String?     // Sales, Operations, etc.
+  salesTarget       Float?      // Monthly sales target (for sales dept)
+  reportingHeadId   String?
+  reportingHead     Employee?   @relation("ReportingStructure", fields: [reportingHeadId], references: [id])
+  subordinates      Employee[]  @relation("ReportingStructure")
+  dateOfJoining     DateTime
+  profilePicture    String?
+  documents         Json?
+  // KYC Documents
+  aadharNumber      String?
+  panNumber         String?
+  aadharDocument    String?    // File path or URL for Aadhar document
+  panDocument       String?    // File path or URL for PAN document
+  // Bank Details
+  bankName          String?
+  bankAddress       String?
+  accountNumber     String?
+  ifscCode          String?
+  user              User?
+  attendance        Attendance[]
+  leaves            Leave[]
+  tasks             Task[]
+  projects          ProjectMember[]
+  messages          Message[]
+  payroll           Payroll[]
+  bankingDetails    BankingDetails?
+  employeeDocuments EmployeeDocument[]
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([isActive])
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  employeeId     String
+  employee       Employee         @relation(fields: [employeeId], references: [id])
+  date           DateTime
+  punchIn        DateTime?
+  punchOut       DateTime?
+  punchInIp      String?          // IP address when punched in
+  punchOutIp     String?          // IP address when punched out
+  breakStart     DateTime?
+  breakEnd       DateTime?
+  totalHours     Float?
+  breakDuration  Float?           // Total break time in hours
+  idleTime       Float?           // Idle time in hours (logged in but inactive)
+  status         AttendanceStatus @default(ABSENT)
+  activityLogs   ActivityLog[]    // Track all activity heartbeats
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([employeeId, date], name: "employeeId_date")
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+}
+
+model ActivityLog {
+  id             String     @id @default(cuid())
+  attendanceId   String
+  attendance     Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  timestamp      DateTime   // When the activity was detected
+  active         Boolean    @default(true) // Whether user was active at this timestamp
+  suspicious     Boolean    @default(false) // Whether automated/bot pattern was detected
+  patternType    String?    // Type of pattern detected (REPETITIVE_KEY, LINEAR_MOUSE_MOVEMENT, etc.)
+  patternDetails String?    // Detailed description of the pattern
+
+  // Enhanced detection fields
+  confidence     String?    // LOW, MEDIUM, HIGH - confidence level of detection
+  confidenceScore Float?    // Numerical score 0-100 for detection confidence
+  durationMs     Int?       // How long the suspicious pattern persisted in milliseconds
+  patternStartTime DateTime? // When the suspicious pattern started
+
+  // Fingerprint/Device info
+  ipAddress      String?    // IP address of the user
+  userAgent      String?    // Browser user agent string
+  browserName    String?    // Parsed browser name
+  browserVersion String?    // Parsed browser version
+  osName         String?    // Operating system name
+  osVersion      String?    // Operating system version
+  deviceType     String?    // desktop, mobile, tablet
+  screenResolution String?  // e.g., "1920x1080"
+  timezone       String?    // User's timezone
+  language       String?    // Browser language
+
+  createdAt      DateTime   @default(now())
+
+  @@index([attendanceId])
+  @@index([timestamp])
+  @@index([suspicious])
+  @@index([confidence])
+  @@index([ipAddress])
+}
+
+model Leave {
+  id           String      @id @default(cuid())
+  employeeId   String
+  employee     Employee    @relation(fields: [employeeId], references: [id])
+  leaveType    LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  days         Int
+  reason       String
+  status       LeaveStatus @default(PENDING)
+  adminComment String?     // Admin comment when approving/rejecting/holding
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model Project {
+  id              String          @id @default(cuid())
+  projectId       String          @unique // Auto-generated project ID
+  name            String
+  description     String
+  sowDocument     String?         // Path/URL to signed SoW document
+  projectType     ProjectType     @default(MILESTONE)
+  totalBudget     Float?
+  upfrontPayment  Float?          @default(0)
+  currency        String          @default("USD")
+  startDate       DateTime
+  endDate         DateTime?
+  status          ProjectStatus   @default(ACTIVE)
+  milestones      Json?           // Array of milestone details with success criteria and payment
+  successCriteria String?
+  leadId          String?         // Reference to Lead if converted from sales
+  saleId          String?         // Reference to Sale if created from sale
+  members         ProjectMember[]
+  tasks           Task[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model ProjectMember {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  role        String?
+  createdAt   DateTime  @default(now())
+}
+
+model Task {
+  id            String        @id @default(cuid())
+  projectId     String?
+  project       Project?      @relation(fields: [projectId], references: [id])
+  milestone     String?       // Which milestone this task belongs to (milestone ID)
+  assignedTo    String
+  employee      Employee      @relation(fields: [assignedTo], references: [id])
+  title         String
+  description   String
+  status        TaskStatus    @default(PENDING)
+  priority      Priority      @default(MEDIUM)
+  dueDate       DateTime?
+  updates       TaskUpdate[]  // Developer updates/issues/requirements
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model TaskUpdate {
+  id          String    @id @default(cuid())
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  content     String    // Update content, issues, requirements
+  createdBy   String    // Employee ID
+  createdAt   DateTime  @default(now())
+}
+
+model DailyWorkUpdate {
+  id                String    @id @default(cuid())
+  employeeId        String
+  date              DateTime  // The specific day for this update
+  workCompleted     String    // What work was completed
+  obstaclesOvercome String?   // Obstacles that were overcome
+  tasksLeft         String?   // Tasks remaining to be done
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([employeeId, date], name: "employeeId_date")
+  @@index([employeeId])
+  @@index([date])
+}
+
+model Payroll {
+  id                String        @id @default(cuid())
+  employeeId        String
+  employee          Employee      @relation(fields: [employeeId], references: [id])
+  month             Int
+  year              Int
+  workingDays       Int           @default(30)
+  daysPresent       Int           @default(0)
+  daysAbsent        Int           @default(0)
+
+  // Salary Components
+  basicSalary       Float         // Basic pay component
+  variablePay       Float         @default(0) // Variable/incentive component
+
+  // Sales/Target (for sales department)
+  salesTarget       Float?        // Monthly sales target
+  targetAchieved    Float?        @default(0) // Actual target achieved
+
+  // Payable Amounts
+  basicPayable      Float         // Calculated based on attendance
+  variablePayable   Float         @default(0) // Calculated based on target achievement
+  grossSalary       Float         // Total payable before deductions
+
+  // Deductions
+  professionalTax   Float         @default(200) // P.tax
+  tds               Float         @default(0) // Tax Deducted at Source
+  penalties         Float         @default(0) // Any penalties
+  advancePayment    Float         @default(0) // Advance taken
+  otherDeductions   Float         @default(0) // Other deductions
+  totalDeductions   Float         @default(0) // Sum of all deductions
+
+  // Final Amount
+  netSalary         Float         // Final amount after deductions
+
+  status            PayrollStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([employeeId, month, year])
+  @@index([employeeId])
+  @@index([month, year])
+  @@index([status])
+}
+
+model SalaryConfig {
+  id              String    @id @default(cuid())
+  pfPercentage    Float     @default(12)
+  esiPercentage   Float     @default(0.75)
+  taxSlabs        Json?
+  bonusRules      Json?
+  updatedAt       DateTime  @updatedAt
+}
+
+model CompanyProfile {
+  id              String              @id @default(cuid())
+  companyName     String              @default("Infiniti Tech Partners")
+  address1        String?
+  address2        String?
+  city            String?
+  state           String?
+  pincode         String?
+  country         String              @default("India")
+  phone           String?
+  email           String?
+  website         String?
+  logo            String?             // Path to company logo
+  panNumber       String?
+  gstNumber       String?
+  cinNumber       String?             // Corporate Identification Number
+  bankAccounts    CompanyBankAccount[]
+  updatedAt       DateTime            @updatedAt
+}
+
+model CompanyBankAccount {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         CompanyProfile  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nickname        String          // e.g., "Main Account", "USD Account", etc.
+  accountType     String          @default("Indian") // "Indian" or "International"
+
+  // Common fields
+  bankName        String
+  accountNumber   String
+  accountHolder   String?
+
+  // Indian bank fields
+  ifscCode        String?
+  branchName      String?
+
+  // International bank fields
+  swiftCode       String?
+  iban            String?
+  routingNumber   String?
+  bankAddress     String?
+
+  currency        String          @default("INR")
+  isDefault       Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Invoice {
+  id              String          @id @default(cuid())
+  invoiceNumber   String          @unique
+  clientName      String
+  clientEmail     String?
+  clientAddress   String?
+  amount          Float
+  currency        String          @default("INR")
+  status          InvoiceStatus   @default(DRAFT)
+  items           Json?
+  dueDate         DateTime?
+  notes           String?
+  fileUrl         String?
+  paidAmount      Float?
+  paidDate        DateTime?
+  skyDoSynced     Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([dueDate])
+}
+
+model Account {
+  id              String          @id @default(cuid())
+  type            AccountType
+  categoryId      String
+  category        AccountCategory @relation(fields: [categoryId], references: [id])
+  amount          Float           // Always in INR
+  currency        String          @default("INR")
+  date            DateTime
+  description     String
+  reference       String?
+  // For incoming payments
+  paymentPurpose  String?
+  paymentMode     String?         // Bank Transfer, Cash, Cheque, etc
+  senderName      String?
+  bankInfo        String?
+  // For outgoing payments
+  paymentTo       String?         // Recipient name
+  paymentCategory String?         // Salary, Office Expense, etc
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model AccountCategory {
+  id            String      @id @default(cuid())
+  name          String      @unique
+  type          AccountType
+  subCategories Json?
+  accounts      Account[]
+  createdAt     DateTime    @default(now())
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  senderId    String
+  sender      Employee    @relation(fields: [senderId], references: [id])
+  recipientId String
+  subject     String?
+  content     String
+  read        Boolean     @default(false)
+  tracked     Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+}
+
+model MessagingPermission {
+  id              String    @id @default(cuid())
+  userId          String
+  canMessagePeers Boolean   @default(true)   // Can message same level employees
+  canMessageManager Boolean @default(true)   // Can message their manager
+  canMessageDirector Boolean @default(false) // Can message directors/founder
+  allowedRecipients String? // JSON array of specific user IDs allowed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId])
+}
+
+model SalesTarget {
+  id              String    @id @default(cuid())
+  employeeId      String    // Sales agent/executive
+  month           Int       // 1-12
+  year            Int
+  targetAmount    Float     // Target in USD
+  achievedAmount  Float     @default(0) // Achieved in USD
+  commission      Float     @default(0) // Commission earned
+  numberOfSales   Int       @default(0) // Number of sales made
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([employeeId, month, year])
+}
+
+model Report {
+  id          String      @id @default(cuid())
+  reportType  ReportType
+  month       Int?        // For monthly reports
+  year        Int?
+  data        Json        // Report data in JSON format
+  generatedBy String?     // Employee ID who generated
+  createdAt   DateTime    @default(now())
+}
+
+model Lead {
+  id                  String          @id @default(cuid())
+  leadNumber          String          @unique
+  companyName         String
+  companyAddress      String?
+  contactName         String
+  email               String
+  phone               String
+  altPhone            String?
+  projectType         String?         // Services pitched for
+  estimatedValue      Float?          // Estimated deal value in USD
+  source              String?         // Website, Referral, Cold Call, etc
+  executiveName       String?         // Sales executive or agent name
+  communicationDetails String?        // Details of communication
+  status              CRMLeadStatus   @default(NEW)
+  callbackDateTime    DateTime?       // Call back or connect back date and time
+  assignedTo          String?
+  notes               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  convertedAt         DateTime?
+  saleId              String?         @unique
+  sale                Sale?           @relation(fields: [saleId], references: [id])
+
+  @@index([status])
+  @@index([assignedTo])
+  @@index([createdAt])
+}
+
+model Sale {
+  id              String      @id @default(cuid())
+  saleNumber      String      @unique
+  leadId          String?     @unique
+  lead            Lead?
+  companyName     String
+  contactName     String
+  email           String
+  phone           String
+  product         String
+  quantity        Int         @default(1)
+  unitPrice       Float
+  grossAmount     Float       // Total sale amount in USD
+  upfrontAmount   Float       // Upfront payment received in USD
+  discount        Float       @default(0)
+  taxPercentage   Float       @default(0)
+  taxAmount       Float       @default(0)
+  netAmount       Float       // Final amount after discount + tax
+  currency        String      @default("USD")
+  status          SaleStatus  @default(PENDING)
+  closedBy        String?     // Employee ID who closed the sale
+  closedAt        DateTime?
+  month           Int?        // Month of sale (1-12)
+  year            Int?        // Year of sale
+  commission      Float?      // Commission for sales agent
+  notes           String?
+  accountSynced   Boolean     @default(false) // Whether financial entry created
+  projectSynced   Boolean     @default(false) // Whether project created
+  projectId       String?     // Reference to created project
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+  @@index([closedBy])
+  @@index([month, year])
+  @@index([createdAt])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+  HOLIDAY
+  WEEKEND
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  EARNED
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  HOLD
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  HOLD
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum AccountType {
+  INCOME
+  EXPENSE
+}
+
+enum CRMLeadStatus {
+  NEW
+  COLD_CALL_BACK
+  WARM
+  PROSPECT
+  SALE_MADE
+  HOLD
+  DORMANT
+  CONVERTED
+  LOST
+}
+
+enum ProjectType {
+  MILESTONE
+  RETAINER
+}
+
+enum ReportType {
+  APR           // Attendance Performance Report
+  DSR           // Daily Sales Report
+  PERFORMANCE   // Employee Performance Report
+  SALES         // Sales Report
+  ACCOUNTS      // Account Report
+}
+
+enum SaleStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  PAID
+  CANCELLED
+}
+
+enum PayrollStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
+model HRDocument {
+  id            String    @id @default(cuid())
+  type          HRDocType
+  title         String
+  description   String?
+  content       String?   // For text-based documents (policies, hierarchy)
+  filePath      String?   // For uploaded files
+  year          Int?      // For holiday lists
+  isActive      Boolean   @default(true)
+  createdBy     String?   // Employee ID
+  updatedBy     String?   // Employee ID
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum HRDocType {
+  POLICY
+  HOLIDAY_LIST
+  COMPANY_HIERARCHY
+  OTHER
+}
+
+// ============================================
+// INTEGRATIONS: Azure DevOps, Asana & Confluence
+// ============================================
+
+model IntegrationConnection {
+  id                String              @id @default(cuid())
+  platform          IntegrationType     // AZURE_DEVOPS, ASANA, CONFLUENCE
+  name              String              // Friendly name (e.g., "My Azure DevOps", "Client Azure")
+
+  // Authentication
+  authType          String              // PAT, OAUTH, API_KEY
+  accessToken       String              // Encrypted token
+  refreshToken      String?             // For OAuth
+  tokenExpiry       DateTime?
+
+  // Platform-specific config
+  organizationUrl   String?             // Azure DevOps: https://dev.azure.com/orgname | Confluence: https://yoursite.atlassian.net
+  organizationName  String?             // Azure DevOps organization name
+  workspaceId       String?             // Asana workspace ID
+  confluenceSpaceKey String?            // Confluence space key
+
+  // Sync configuration
+  syncEnabled       Boolean             @default(true)
+  syncFrequency     String              @default("MANUAL") // MANUAL, HOURLY, DAILY
+  lastSyncAt        DateTime?
+  lastSyncStatus    String?             // SUCCESS, FAILED, PARTIAL
+  lastSyncError     String?
+
+  // User mapping
+  userMappings      IntegrationUserMapping[]
+  workItems         WorkItem[]
+  commits           DeveloperCommit[]
+  confluencePages   ConfluencePage[]
+
+  isActive          Boolean             @default(true)
+  createdBy         String?             // Employee ID
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([platform])
+  @@index([isActive])
+}
+
+model IntegrationUserMapping {
+  id              String                @id @default(cuid())
+  connectionId    String
+  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // HRMS Employee
+  employeeId      String
+  employeeEmail   String
+
+  // External platform user
+  externalUserId  String                // Azure DevOps user ID or Asana user GID
+  externalEmail   String
+  externalName    String
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([connectionId, employeeId])
+  @@unique([connectionId, externalUserId])
+  @@index([employeeId])
+}
+
+model WorkItem {
+  id                String                @id @default(cuid())
+  connectionId      String
+  connection        IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // External platform reference
+  externalId        String                // Work item ID from Azure/Asana
+  externalUrl       String                // Direct link to work item
+  platform          IntegrationType
+
+  // Basic info
+  title             String
+  description       String?
+  workItemType      String                // Azure: Story, Task, Bug, Epic | Asana: Task, Subtask | Confluence: Page, Blog
+  status            String                // Platform-specific status
+  priority          String?
+
+  // Assignment
+  assignedToId      String?               // HRMS Employee ID
+  assignedTo        String?               // External user ID
+  assignedToName    String?
+
+  // Dates
+  createdDate       DateTime
+  modifiedDate      DateTime?
+  completedDate     DateTime?
+  dueDate           DateTime?
+
+  // Project/Board reference
+  projectName       String?
+  projectId         String?               // External project/board ID
+
+  // Azure DevOps specific
+  areaPath          String?
+  iterationPath     String?
+  storyPoints       Int?
+
+  // Asana specific
+  sectionId         String?
+  sectionName       String?
+  tags              Json?                 // Array of tags
+
+  // Confluence specific
+  spaceKey          String?               // Confluence space key
+  spaceName         String?               // Confluence space name
+  parentPageId      String?               // Parent page ID
+  version           Int?                  // Page version number
+
+  // Metadata
+  metadata          Json?                 // Additional platform-specific data
+  lastSyncedAt      DateTime              @default(now())
+
+  // Relations
+  commits           DeveloperCommit[]
+
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId])
+  @@index([assignedToId])
+  @@index([platform])
+  @@index([status])
+  @@index([createdDate])
+}
+
+model DeveloperCommit {
+  id              String                @id @default(cuid())
+  connectionId    String
+  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // Employee reference
+  employeeId      String
+
+  // Commit details
+  commitHash      String
+  commitMessage   String
+  commitUrl       String?
+
+  // Repository info
+  repositoryName  String
+  repositoryId    String?
+  branchName      String?
+
+  // Changes
+  filesChanged    Int                   @default(0)
+  linesAdded      Int                   @default(0)
+  linesDeleted    Int                   @default(0)
+
+  // Dates
+  commitDate      DateTime
+  authorDate      DateTime?
+
+  // Work item linkage
+  workItemId      String?
+  workItem        WorkItem?             @relation(fields: [workItemId], references: [id])
+  linkedWorkItems Json?                 // Array of work item IDs mentioned in commit
+
+  // Author info
+  authorName      String
+  authorEmail     String
+
+  lastSyncedAt    DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+
+  @@unique([connectionId, commitHash])
+  @@index([employeeId])
+  @@index([commitDate])
+  @@index([repositoryName])
+}
+
+model PullRequest {
+  id              String                @id @default(cuid())
+  connectionId    String
+
+  // PR details
+  externalId      String                // PR number/ID
+  externalUrl     String
+  title           String
+  description     String?
+  status          String                // Active, Completed, Abandoned
+
+  // Repository
+  repositoryName  String
+  repositoryId    String?
+  sourceBranch    String
+  targetBranch    String
+
+  // People
+  createdById     String?               // HRMS Employee ID
+  createdByName   String
+  reviewers       Json?                 // Array of reviewer info
+
+  // Dates
+  createdDate     DateTime
+  closedDate      DateTime?
+  mergedDate      DateTime?
+
+  // Stats
+  commitsCount    Int                   @default(0)
+  filesChanged    Int                   @default(0)
+
+  lastSyncedAt    DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([createdById])
+  @@index([createdDate])
+}
+
+model ConfluencePage {
+  id              String                @id @default(cuid())
+  connectionId    String
+  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // Page identification
+  externalId      String                // Confluence page ID
+  type            String                @default("page")
+  status          String                @default("current")
+
+  // Content
+  title           String
+  content         String                // HTML storage format
+
+  // Hierarchy
+  spaceId         String?
+  spaceKey        String?
+  spaceName       String?
+  parentId        String?               // External parent page ID
+  parentType      String?
+  position        Int?
+
+  // Authorship
+  authorId        String?
+  authorName      String?
+  ownerId         String?
+
+  // Version control
+  version         Int                   @default(1)
+  versionMessage  String?
+
+  // Metadata
+  metadata        Json?                 // Additional Confluence metadata
+
+  // Timestamps
+  createdDate     DateTime
+  updatedDate     DateTime
+  lastSyncedAt    DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId])
+  @@index([spaceKey])
+  @@index([parentId])
+  @@index([createdDate])
+}
+
+enum IntegrationType {
+  AZURE_DEVOPS
+  ASANA
+  CONFLUENCE
+}
+
+model BankingDetails {
+  id                  String    @id @default(cuid())
+  employeeId          String    @unique
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Primary Bank Account
+  bankName            String
+  branchName          String?
+  accountHolderName   String
+  accountNumber       String
+  accountType         String?   // Savings, Current, etc.
+  ifscCode            String
+  swiftCode           String?
+
+  // Additional Banking Info
+  upiId               String?
+  panNumber           String?
+  pfAccountNumber     String?   // Provident Fund
+  esiNumber           String?   // Employee State Insurance
+  uanNumber           String?   // Universal Account Number for PF
+
+  // Verification
+  isVerified          Boolean   @default(false)
+  verifiedBy          String?
+  verifiedAt          DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([employeeId])
+}
+
+model EmployeeDocument {
+  id              String          @id @default(cuid())
+  employeeId      String
+  employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  documentType    DocumentType
+  documentName    String
+  fileName        String
+  fileUrl         String          // Cloud storage URL or local path
+  fileSize        Int?            // File size in bytes
+  mimeType        String?
+
+  // Document Details
+  documentNumber  String?         // For ID documents like Aadhar, PAN, Passport
+  issuedDate      DateTime?
+  expiryDate      DateTime?
+  issuingAuthority String?
+
+  // Verification
+  isVerified      Boolean         @default(false)
+  verifiedBy      String?
+  verifiedAt      DateTime?
+
+  // Metadata
+  notes           String?
+  uploadedBy      String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([employeeId])
+  @@index([documentType])
+}
+
+enum DocumentType {
+  // Identity Documents
+  AADHAR_CARD
+  PAN_CARD
+  PASSPORT
+  DRIVING_LICENSE
+  VOTER_ID
+
+  // Educational Documents
+  TENTH_MARKSHEET
+  TWELFTH_MARKSHEET
+  GRADUATION_DEGREE
+  POST_GRADUATION_DEGREE
+  OTHER_CERTIFICATE
+
+  // Professional Documents
+  OFFER_LETTER
+  APPOINTMENT_LETTER
+  EXPERIENCE_LETTER
+  RELIEVING_LETTER
+  SALARY_SLIP
+  FORM_16
+
+  // KYC Documents
+  BANK_STATEMENT
+  CANCELLED_CHEQUE
+  ADDRESS_PROOF
+
+  // Other
+  PROFILE_PHOTO
+  RESUME
+  OTHER
+}
+
+enum SalaryType {
+  FIXED     // Fixed monthly salary
+  VARIABLE  // Base salary + variable/commission
+}
+
+// ============================================
+// ORGANIZATIONAL HIERARCHY
+// ============================================
+
+model Designation {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  level           Int       @default(0)  // Hierarchy level (0 = top, higher = lower in hierarchy)
+  departmentId    String?   // Optional: link designation to specific department
+  department      Department? @relation(fields: [departmentId], references: [id])
+  parentId        String?   // Parent designation for hierarchy
+  parent          Designation? @relation("DesignationHierarchy", fields: [parentId], references: [id])
+  children        Designation[] @relation("DesignationHierarchy")
+  description     String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([level])
+  @@index([departmentId])
+  @@index([isActive])
+}
+
+model Department {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  code            String?   @unique  // Short code like DEV, HR, SALES
+  description     String?
+  headId          String?   // Department head (employee ID)
+  parentId        String?   // Parent department for sub-departments
+  parent          Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children        Department[] @relation("DepartmentHierarchy")
+  designations    Designation[]
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isActive])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String   // Who made the change
+  userName      String   // Name of user who made change
+  userRole      String   // Role of user (ADMIN/MANAGER)
+  action        String   // CREATE, UPDATE, DELETE
+  entityType    String   // Attendance, Employee, Payroll, etc.
+  entityId      String   // ID of the entity that was changed
+  entityName    String?  // Name/description of entity
+  changes       Json?    // JSON of what changed (old value -> new value)
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String   // Holiday name (e.g., "Republic Day")
+  date        DateTime // Date of the holiday
+  year        Int      // Year for easy filtering
+  isOptional  Boolean  @default(false) // Optional holiday or mandatory
+  description String?  // Additional info
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([year])
+}

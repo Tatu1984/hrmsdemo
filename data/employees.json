@@ -1,0 +1,39 @@
+[
+  {
+    "id": "1",
+    "employeeId": "EMP001",
+    "name": "Admin User",
+    "email": "admin@company.com",
+    "phone": "+91-9999999999",
+    "address": "123 Admin Street, Mumbai",
+    "designation": "System Administrator",
+    "salary": 100000,
+    "department": "Administration",
+    "dateOfJoining": "2024-01-01"
+  },
+  {
+    "id": "2",
+    "employeeId": "EMP002",
+    "name": "Amit Patel",
+    "email": "manager@company.com",
+    "phone": "+91-8888888888",
+    "address": "456 Manager Avenue, Delhi",
+    "designation": "Project Manager",
+    "salary": 80000,
+    "department": "Development",
+    "dateOfJoining": "2024-02-01"
+  },
+  {
+    "id": "3",
+    "employeeId": "EMP003",
+    "name": "Priya Sharma",
+    "email": "employee@company.com",
+    "phone": "+91-7777777777",
+    "address": "789 Employee Road, Bangalore",
+    "designation": "Software Developer",
+    "salary": 50000,
+    "department": "Development",
+    "reportingHeadId": "2",
+    "dateOfJoining": "2024-03-01"
+  }
+]

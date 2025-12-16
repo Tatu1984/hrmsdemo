@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1",
+    "projectId": "1",
+    "assignedTo": "3",
+    "title": "Design login page",
+    "description": "Create a beautiful and functional login page",
+    "status": "IN_PROGRESS",
+    "priority": "HIGH",
+    "dueDate": "2025-10-25",
+    "createdAt": "2025-10-20T05:51:27.922Z"
+  }
+]

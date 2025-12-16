@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "email": "admin@company.com",
+    "username": "admin",
+    "password": "$2b$10$hzUP3zxKjwObjcP0FmBUv.nBPPV9tVB.hjZf25kcrmUynJqkkktia",
+    "role": "ADMIN",
+    "employeeId": "1"
+  },
+  {
+    "id": "2",
+    "email": "manager@company.com",
+    "username": "manager",
+    "password": "$2b$10$hzUP3zxKjwObjcP0FmBUv.nBPPV9tVB.hjZf25kcrmUynJqkkktia",
+    "role": "MANAGER",
+    "employeeId": "2"
+  },
+  {
+    "id": "3",
+    "email": "employee@company.com",
+    "username": "employee",
+    "password": "$2b$10$hzUP3zxKjwObjcP0FmBUv.nBPPV9tVB.hjZf25kcrmUynJqkkktia",
+    "role": "EMPLOYEE",
+    "employeeId": "3"
+  }
+]

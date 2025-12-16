@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1",
+    "employeeId": "3",
+    "leaveType": "CASUAL",
+    "startDate": "2025-10-25",
+    "endDate": "2025-10-26",
+    "days": 2,
+    "reason": "Personal work",
+    "status": "PENDING",
+    "createdAt": "2025-10-20T05:51:27.921Z"
+  }
+]

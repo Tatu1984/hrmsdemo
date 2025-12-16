@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1",
+    "name": "HRMS Development",
+    "description": "Building a comprehensive HR Management System",
+    "startDate": "2025-01-01",
+    "status": "ACTIVE",
+    "managerId": "2",
+    "members": [
+      "2",
+      "3"
+    ]
+  }
+]
