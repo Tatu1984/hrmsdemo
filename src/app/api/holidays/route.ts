@@ -12,14 +12,41 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
+    const month = searchParams.get('month');
 
     const where: any = {};
+
     if (year) {
-      where.year = parseInt(year);
+      const yearNum = parseInt(year);
+      const monthNum = month ? parseInt(month) : null;
+
+      if (monthNum !== null) {
+        // Filter by specific month - use date range for timezone safety
+        const startDate = new Date(yearNum, monthNum, 1);
+        const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
+        where.date = {
+          gte: startDate,
+          lte: endDate,
+        };
+      } else {
+        // Filter by year - use date range for timezone safety
+        // This catches holidays regardless of how they were stored
+        const startOfYear = new Date(yearNum, 0, 1);
+        const endOfYear = new Date(yearNum, 11, 31, 23, 59, 59, 999);
+        where.OR = [
+          { year: yearNum },
+          {
+            date: {
+              gte: startOfYear,
+              lte: endOfYear,
+            },
+          },
+        ];
+      }
     }
 
     const holidays = await prisma.holiday.findMany({
-      where,
+      where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { date: 'asc' },
     });
 

@@ -80,3 +80,40 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
+
+// Verify auth from request (for API routes)
+export async function verifyAuth(request: Request): Promise<JWTPayload | null> {
+  // Try to get token from cookie
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const token = cookies['session'];
+    if (token) {
+      return decrypt(token);
+    }
+  }
+
+  // Try Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    return decrypt(token);
+  }
+
+  return null;
+}
+
+// Check if user is admin
+export function isAdmin(role: string): boolean {
+  return role === 'ADMIN';
+}
+
+// Check if user is manager or above
+export function isManagerOrAbove(role: string): boolean {
+  return role === 'ADMIN' || role === 'MANAGER';
+}

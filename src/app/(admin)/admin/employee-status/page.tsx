@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { formatHoursMinutes } from '@/lib/utils';
 
 interface EmployeeStatus {
   id: string;
@@ -360,7 +361,7 @@ export default function EmployeeStatusPage() {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-gray-500">Working Hours:</span>
                           <span className="font-medium">
-                            {employee.totalHours.toFixed(1)}h
+                            {formatHoursMinutes(employee.totalHours)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">

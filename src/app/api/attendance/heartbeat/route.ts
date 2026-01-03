@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
-// Activity heartbeat tracking
-// Employees send heartbeat every 3 minutes while active
-// Used to calculate idle time and detect activity
+// Activity heartbeat tracking with bot detection
+// Employees send heartbeat every 5 minutes while active
+// Bot/auto-clicker patterns are detected and marked as inactive
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +19,12 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const wasActive = body.active !== undefined ? body.active : true;
+    const isSuspicious = body.suspicious === true;
+    const patternType = body.patternType || null;
+    const patternDetails = body.patternDetails || null;
+
+    // CRITICAL: If suspicious activity detected, override active to false
+    const effectiveActive = wasActive && !isSuspicious;
 
     const now = new Date();
     const today = new Date();
@@ -60,16 +66,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Record activity heartbeat
+    // Log suspicious activity for admin review
+    if (isSuspicious) {
+      console.warn(`[BOT DETECTED] Employee: ${session.employeeId}, Pattern: ${patternType}, Details: ${patternDetails}`);
+    }
+
+    // Record activity heartbeat with bot detection info
     await prisma.activityLog.create({
       data: {
         attendanceId: attendance.id,
         timestamp: now,
-        active: wasActive,
+        active: effectiveActive, // FALSE if bot detected
+        suspicious: isSuspicious,
+        patternType: patternType,
+        patternDetails: patternDetails,
       },
     });
 
     // Calculate idle time based on gaps in activity logs
+    // Now also counts suspicious activity periods as idle time
     const activityLogs = await prisma.activityLog.findMany({
       where: {
         attendanceId: attendance.id,
@@ -80,6 +95,8 @@ export async function POST(request: NextRequest) {
     });
 
     let totalIdleMinutes = 0;
+    let suspiciousMinutes = 0;
+
     for (let i = 1; i < activityLogs.length; i++) {
       const prevLog = activityLogs[i - 1];
       const currentLog = activityLogs[i];
@@ -92,9 +109,16 @@ export async function POST(request: NextRequest) {
       if (gapMinutes > 5) {
         totalIdleMinutes += gapMinutes - 5; // Subtract 5 min threshold
       }
+
+      // Count time during suspicious activity as idle
+      if (currentLog.suspicious) {
+        suspiciousMinutes += gapMinutes;
+      }
     }
 
-    const idleHours = totalIdleMinutes / 60;
+    // Add suspicious time to idle time (bot activity = not real work)
+    const totalIdle = totalIdleMinutes + suspiciousMinutes;
+    const idleHours = totalIdle / 60;
 
     // Update attendance with new idle time
     await prisma.attendance.update({
@@ -108,6 +132,8 @@ export async function POST(request: NextRequest) {
       success: true,
       idleTime: idleHours,
       lastHeartbeat: now,
+      botDetected: isSuspicious,
+      effectiveActive: effectiveActive,
     });
   } catch (error: any) {
     console.error('Error recording heartbeat:', error);

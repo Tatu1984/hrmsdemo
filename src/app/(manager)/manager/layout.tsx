@@ -3,10 +3,12 @@ import { getSession } from '@/lib/auth';
 import Sidebar from '@/components/shared/sidebar';
 import Navbar from '@/components/shared/navbar';
 import { PopupMessenger } from '@/components/messenger/PopupMessenger';
+import { BrowserActivityTracker } from '@/components/shared/BrowserActivityTracker';
 
 const sidebarItems = [
   { icon: 'LayoutDashboard', label: 'Dashboard', href: '/manager/dashboard' },
   { icon: 'Clock', label: 'Attendance', href: '/manager/attendance' },
+  { icon: 'Timer', label: 'Time Analytics', href: '/manager/time-analytics' },
   { icon: 'Calendar', label: 'Leave', href: '/manager/leave' },
   { icon: 'FolderKanban', label: 'Projects', href: '/manager/projects', children: [
     { icon: 'CheckSquare', label: 'Tasks', href: '/manager/tasks' },
@@ -28,6 +30,7 @@ export default async function ManagerLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex h-screen bg-gray-100">
+      <BrowserActivityTracker />
       <Sidebar items={sidebarItems} baseUrl="/manager" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar userName={session.name} userRole="Manager" />

@@ -78,3 +78,26 @@ export function isHistoricalDate(date: string | Date): boolean {
   compareDate.setHours(0, 0, 0, 0);
   return compareDate < today;
 }
+
+/**
+ * Converts decimal hours to HH:MM format
+ * Example: 1.5 hours -> "1:30", 2.75 hours -> "2:45"
+ */
+export function formatHoursMinutes(decimalHours: number | null | undefined): string {
+  if (decimalHours === null || decimalHours === undefined) return '-';
+  if (decimalHours === 0) return '0:00';
+
+  const isNegative = decimalHours < 0;
+  const absHours = Math.abs(decimalHours);
+
+  const hours = Math.floor(absHours);
+  const minutes = Math.round((absHours - hours) * 60);
+
+  // Handle edge case where rounding gives 60 minutes
+  if (minutes === 60) {
+    return `${isNegative ? '-' : ''}${hours + 1}:00`;
+  }
+
+  const formattedMinutes = minutes.toString().padStart(2, '0');
+  return `${isNegative ? '-' : ''}${hours}:${formattedMinutes}`;
+}

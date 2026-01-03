@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, Coffee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ActivityTracker } from '@/components/attendance/ActivityTracker';
+import { formatHoursMinutes } from '@/lib/utils';
 
 interface AttendanceControlsProps {
   attendance: {
@@ -133,7 +134,7 @@ export function AttendanceControls({ attendance }: AttendanceControlsProps) {
         <div className="text-white">
           <p className="text-sm">Completed for today!</p>
           <p className="text-xs text-blue-100">
-            {attendance.totalHours ? `Total: ${attendance.totalHours.toFixed(2)} hours` : ''}
+            {attendance.totalHours ? `Total: ${formatHoursMinutes(attendance.totalHours)} hrs` : ''}
           </p>
         </div>
       )}

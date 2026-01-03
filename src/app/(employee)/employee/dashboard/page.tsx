@@ -23,6 +23,19 @@ export default async function EmployeeDashboard() {
     },
   });
 
+  // Find the CEO (top of hierarchy - no reporting head and designation is CEO)
+  const ceo = await prisma.employee.findFirst({
+    where: {
+      designation: { contains: 'CEO', mode: 'insensitive' },
+      reportingHeadId: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      designation: true,
+    },
+  });
+
   const tasks = await prisma.task.findMany({
     where: { assignedTo: session!.employeeId! },
   });
@@ -164,15 +177,21 @@ export default async function EmployeeDashboard() {
         <CardContent>
           <div className="flex items-center justify-center p-8">
             <div className="text-center space-y-4">
-              <div className="inline-block">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold mb-2">
-                  CEO
-                </div>
-                <p className="font-semibold">Rahul Mehta</p>
-                <p className="text-xs text-gray-500">Chief Executive Officer</p>
-              </div>
-              <div className="h-8 w-px bg-gray-300 mx-auto"></div>
-              {employee?.reportingHead && (
+              {/* CEO */}
+              {ceo && (
+                <>
+                  <div className="inline-block">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold mb-2">
+                      {ceo.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <p className="font-semibold">{ceo.name}</p>
+                    <p className="text-xs text-gray-500">{ceo.designation}</p>
+                  </div>
+                  <div className="h-8 w-px bg-gray-300 mx-auto"></div>
+                </>
+              )}
+              {/* Reporting Head (Manager) - only show if different from CEO */}
+              {employee?.reportingHead && employee.reportingHead.id !== ceo?.id && (
                 <>
                   <div className="inline-block">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold mb-2">
@@ -189,6 +208,13 @@ export default async function EmployeeDashboard() {
                   <div className="h-8 w-px bg-gray-300 mx-auto"></div>
                 </>
               )}
+              {/* Show "Your Manager" badge for CEO if reporting directly to CEO */}
+              {employee?.reportingHead && employee.reportingHead.id === ceo?.id && (
+                <>
+                  <Badge className="-mt-2 mb-2">Your Manager</Badge>
+                </>
+              )}
+              {/* Current Employee */}
               <div className="inline-block">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold mb-2">
                   YOU

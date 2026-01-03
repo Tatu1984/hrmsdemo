@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatHoursMinutes } from '@/lib/utils';
 
 interface AttendanceRecord {
   date: Date | string;
@@ -50,7 +51,10 @@ export function AttendanceCalendar({ attendanceData, showEmployeeCount = false, 
   const getAttendanceForDate = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return attendanceData.find(att => {
-      const attDateStr = new Date(att.date).toISOString().split('T')[0];
+      // Use local date methods to avoid timezone issues
+      // toISOString() converts to UTC which can shift the date
+      const attDate = new Date(att.date);
+      const attDateStr = `${attDate.getFullYear()}-${String(attDate.getMonth() + 1).padStart(2, '0')}-${String(attDate.getDate()).padStart(2, '0')}`;
       return attDateStr === dateStr;
     });
   };
@@ -108,13 +112,13 @@ export function AttendanceCalendar({ attendanceData, showEmployeeCount = false, 
           {attendance && !showEmployeeCount && (
             <div className="text-xs space-y-0.5">
               {attendance.totalHours !== undefined && attendance.totalHours !== null && (
-                <div>Work: {attendance.totalHours.toFixed(1)}h</div>
+                <div>Work: {formatHoursMinutes(attendance.totalHours)}</div>
               )}
               {attendance.breakDuration !== undefined && attendance.breakDuration !== null && attendance.breakDuration > 0 && (
-                <div>Break: {attendance.breakDuration.toFixed(1)}h</div>
+                <div>Break: {formatHoursMinutes(attendance.breakDuration)}</div>
               )}
               {attendance.idleTime !== undefined && attendance.idleTime !== null && attendance.idleTime > 0 && (
-                <div className="text-orange-200">Idle: {attendance.idleTime.toFixed(1)}h</div>
+                <div className="text-orange-200">Idle: {formatHoursMinutes(attendance.idleTime)}</div>
               )}
             </div>
           )}

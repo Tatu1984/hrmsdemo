@@ -47,7 +47,7 @@ interface DeviceFingerprint {
  *   - Repetitive keystrokes at exact intervals (e.g., every 5-10 seconds)
  *   - Mouse movements in exact patterns
  *   - Same key pressed repeatedly at regular intervals
- * - Sends heartbeat every 30 seconds if GENUINE activity detected
+ * - Sends heartbeat every 20 minutes if GENUINE activity detected
  * - If no activity for 5 minutes, user is considered idle
  * - Flags suspicious patterns and marks activity as potentially fake
  */
@@ -66,6 +66,34 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
   // Duration tracking
   const patternStartTimeRef = useRef<number | null>(null);
   const deviceFingerprintRef = useRef<DeviceFingerprint | null>(null);
+
+  // Throttling and decay refs
+  const lastPatternCheckRef = useRef<number>(0);
+  const lastSuspiciousIncrementTimeRef = useRef<number>(0);
+
+  // Detection configuration - tuned to catch real jigglers, not humans
+  const DETECTION_CONFIG = {
+    // Throttle pattern checks to once per 200ms (not every mouse event)
+    PATTERN_CHECK_THROTTLE_MS: 200,
+    // Require 15+ suspicious patterns before flagging (was 3)
+    SUSPICIOUS_THRESHOLD: 15,
+    // Time-based decay: reduce counter by 1 every 30 seconds of clean activity
+    DECAY_INTERVAL_MS: 30000,
+    // Minimum sample size for reliable detection
+    MIN_MOUSE_SAMPLES: 15,
+    MIN_KEYSTROKE_SAMPLES: 12,
+    // Variance thresholds - real jigglers have near-zero variance
+    MAX_JIGGLER_DISTANCE_VARIANCE: 2, // pixels - jigglers move exact amounts
+    MAX_JIGGLER_INTERVAL_VARIANCE: 15, // ms - jigglers have exact timing
+    // Human movement has high variance
+    MIN_HUMAN_VARIANCE: 5, // If variance is below this, might be automated
+    // Direction tolerance - increased from 0.1 to 0.3 radians (~17 degrees)
+    DIRECTION_TOLERANCE: 0.3,
+    // Oscillation - require more reversals AND check for exact patterns
+    MIN_OSCILLATION_COUNT: 12, // out of 14 movements (was 6 out of 7)
+    // Time interval tolerance for detecting bots
+    BOT_TIME_TOLERANCE_MS: 20, // Real bots have < 20ms variance
+  };
 
   /**
    * Parse user agent to extract browser and OS info
@@ -149,6 +177,17 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
   };
 
   /**
+   * Calculates variance of a number array - key for distinguishing bots from humans
+   * Real mouse jigglers have near-zero variance; humans have high variance
+   */
+  const calculateVariance = (values: number[]): number => {
+    if (values.length < 2) return Infinity;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+    return Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / values.length);
+  };
+
+  /**
    * Calculates confidence based on pattern strength
    */
   const calculateConfidence = (matchRatio: number, patternStrength: number): { confidence: 'LOW' | 'MEDIUM' | 'HIGH'; score: number } => {
@@ -162,17 +201,19 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
   /**
    * Detects if keystrokes are following a suspicious pattern
    * Returns pattern details with confidence if detected, null otherwise
+   *
+   * IMPROVED: Uses variance detection to distinguish bots from fast typists
    */
   const detectSuspiciousKeystrokePattern = (history: KeystrokeEvent[]): PatternResult | null => {
-    if (history.length < 10) return null;
+    if (history.length < DETECTION_CONFIG.MIN_KEYSTROKE_SAMPLES) return null;
 
-    // Check last 10 keystrokes
-    const recent = history.slice(-10);
+    // Check last keystrokes with larger sample
+    const recent = history.slice(-DETECTION_CONFIG.MIN_KEYSTROKE_SAMPLES);
 
-    // Pattern 1: Same key pressed repeatedly
+    // Pattern 1: Same key pressed repeatedly (still valid - no human does this)
     const keys = recent.map(e => e.key);
     const uniqueKeys = new Set(keys);
-    if (uniqueKeys.size === 1) {
+    if (uniqueKeys.size === 1 && keys.length >= 12) {
       const { confidence, score } = calculateConfidence(1.0, 0.9);
       return {
         type: 'REPETITIVE_KEY',
@@ -182,39 +223,32 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
       };
     }
 
-    // Pattern 2: Keys pressed at exact intervals (within 100ms tolerance)
+    // Pattern 2: Keys pressed at EXACT intervals - use variance detection
     const intervals: number[] = [];
     for (let i = 1; i < recent.length; i++) {
       intervals.push(recent[i].timestamp - recent[i - 1].timestamp);
     }
 
-    // Check if intervals are suspiciously similar
+    const intervalVariance = calculateVariance(intervals);
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const tolerance = 100; // 100ms tolerance
 
-    let similarIntervals = 0;
-    for (const interval of intervals) {
-      if (Math.abs(interval - avgInterval) < tolerance) {
-        similarIntervals++;
-      }
-    }
-
-    // If 8 out of 9 intervals are almost identical, it's suspicious
-    if (similarIntervals >= 8) {
-      const matchRatio = similarIntervals / 9;
-      // Lower avgInterval = more likely automated (humans can't type that consistently)
-      const patternStrength = avgInterval < 200 ? 0.95 : avgInterval < 500 ? 0.8 : 0.6;
+    // CRITICAL FIX: Only flag if variance is VERY low (bot-like)
+    // Humans have high variance even when typing fast
+    // Bots have variance < 20ms typically
+    if (intervalVariance < DETECTION_CONFIG.BOT_TIME_TOLERANCE_MS && avgInterval < 300) {
+      const matchRatio = 1 - (intervalVariance / 100);
+      const patternStrength = avgInterval < 100 ? 0.95 : avgInterval < 200 ? 0.85 : 0.7;
       const { confidence, score } = calculateConfidence(matchRatio, patternStrength);
       return {
         type: 'REGULAR_INTERVAL_KEYSTROKES',
-        details: `Keys pressed at regular ${Math.round(avgInterval)}ms intervals (${similarIntervals}/9 similar) - Auto-typer detected`,
+        details: `Keys pressed at exact ${Math.round(avgInterval)}ms intervals (variance: ${intervalVariance.toFixed(1)}ms) - Auto-typer detected`,
         confidence,
         confidenceScore: score
       };
     }
 
-    // Pattern 3: Alternating between exactly 2 keys repeatedly
-    if (uniqueKeys.size === 2) {
+    // Pattern 3: Alternating between exactly 2 keys repeatedly WITH low timing variance
+    if (uniqueKeys.size === 2 && intervalVariance < DETECTION_CONFIG.BOT_TIME_TOLERANCE_MS * 2) {
       const [key1, key2] = Array.from(uniqueKeys);
       let isAlternating = true;
       for (let i = 1; i < keys.length; i++) {
@@ -228,7 +262,7 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
         const { confidence, score } = calculateConfidence(1.0, 0.85);
         return {
           type: 'ALTERNATING_KEYS',
-          details: `Keys "${key1}" and "${key2}" alternating in perfect pattern - Macro detected`,
+          details: `Keys "${key1}" and "${key2}" alternating in perfect pattern with ${intervalVariance.toFixed(1)}ms variance - Macro detected`,
           confidence,
           confidenceScore: score
         };
@@ -241,54 +275,45 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
   /**
    * Detects if mouse movements are following a suspicious pattern
    * Returns pattern details with confidence if detected, null otherwise
+   *
+   * IMPROVED: Uses variance detection - the KEY differentiator between humans and bots
+   * Real jigglers have:
+   *   - Near-zero variance in movement distance (exact same pixels every time)
+   *   - Near-zero variance in timing (exact same interval every time)
+   *   - Perfect oscillation patterns (exactly back and forth)
+   * Humans have:
+   *   - High variance in movement distance (imprecise movements)
+   *   - High variance in timing (variable reaction times)
+   *   - Imperfect curves and adjustments
    */
   const detectSuspiciousMousePattern = (history: MouseEvent[]): PatternResult | null => {
-    if (history.length < 10) return null;
+    if (history.length < DETECTION_CONFIG.MIN_MOUSE_SAMPLES) return null;
 
-    const recent = history.slice(-10);
+    const recent = history.slice(-DETECTION_CONFIG.MIN_MOUSE_SAMPLES);
 
-    // Pattern 1: Mouse moving in exact straight lines
-    const movements = recent.slice(1).map((curr, i) => ({
-      dx: curr.x - recent[i].x,
-      dy: curr.y - recent[i].y,
-      timestamp: curr.timestamp - recent[i].timestamp,
-    }));
-
-    // Check if all movements have the same direction and similar magnitude
-    const directions = movements.map(m => Math.atan2(m.dy, m.dx));
-    const avgDirection = directions.reduce((a, b) => a + b, 0) / directions.length;
-    const avgDirectionDegrees = Math.round((avgDirection * 180) / Math.PI);
-
-    let similarDirections = 0;
-    for (const dir of directions) {
-      if (Math.abs(dir - avgDirection) < 0.1) { // ~5 degree tolerance
-        similarDirections++;
-      }
-    }
-
-    if (similarDirections >= 8) {
-      const matchRatio = similarDirections / 9;
-      // Check if movements are also at regular intervals (stronger indicator)
-      const timeIntervals = movements.map(m => m.timestamp);
-      const avgTimeInterval = timeIntervals.reduce((a, b) => a + b, 0) / timeIntervals.length;
-      let regularTimeIntervals = 0;
-      for (const t of timeIntervals) {
-        if (Math.abs(t - avgTimeInterval) < 50) regularTimeIntervals++;
-      }
-      const patternStrength = regularTimeIntervals >= 7 ? 0.95 : 0.75;
-      const { confidence, score } = calculateConfidence(matchRatio, patternStrength);
+    // Calculate movements with distance and timing
+    const movements = recent.slice(1).map((curr, i) => {
+      const dx = curr.x - recent[i].x;
+      const dy = curr.y - recent[i].y;
       return {
-        type: 'LINEAR_MOUSE_MOVEMENT',
-        details: `Mouse moving in straight line at ${avgDirectionDegrees}° (${similarDirections}/9 movements) - Mouse jiggler detected`,
-        confidence,
-        confidenceScore: score
+        dx,
+        dy,
+        distance: Math.sqrt(dx * dx + dy * dy),
+        interval: curr.timestamp - recent[i].timestamp,
       };
-    }
+    });
 
-    // Pattern 2: Mouse not moving at all (stuck at same position)
+    // Calculate variances - THE KEY TO ACCURATE DETECTION
+    const distances = movements.map(m => m.distance);
+    const intervals = movements.map(m => m.interval);
+    const distanceVariance = calculateVariance(distances);
+    const intervalVariance = calculateVariance(intervals);
+
+    // Pattern 1: Mouse not moving at all (stuck at same position)
+    // This is still valid - fake mouse apps that don't actually move
     const positions = recent.map(e => `${e.x},${e.y}`);
     const uniquePositions = new Set(positions);
-    if (uniquePositions.size === 1) {
+    if (uniquePositions.size <= 2) { // Allow tiny movement (1-2 positions)
       const x = recent[0].x;
       const y = recent[0].y;
       const { confidence, score } = calculateConfidence(1.0, 0.9);
@@ -300,28 +325,72 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
       };
     }
 
-    // Pattern 3: Oscillating mouse (back and forth pattern - common in jigglers)
+    // Pattern 2: Perfect oscillation with LOW VARIANCE (real jiggler)
+    // Real jigglers oscillate with EXACT same distance and timing
     let oscillationCount = 0;
-    for (let i = 2; i < movements.length; i++) {
+    const oscillationDistances: number[] = [];
+
+    for (let i = 1; i < movements.length; i++) {
       const prev = movements[i - 1];
       const curr = movements[i];
-      // Check if direction reversed
-      if ((prev.dx > 0 && curr.dx < 0) || (prev.dx < 0 && curr.dx > 0) ||
-          (prev.dy > 0 && curr.dy < 0) || (prev.dy < 0 && curr.dy > 0)) {
+      // Check if direction reversed on BOTH axes (true back-and-forth)
+      const xReversed = (prev.dx > 0 && curr.dx < 0) || (prev.dx < 0 && curr.dx > 0);
+      const yReversed = (prev.dy > 0 && curr.dy < 0) || (prev.dy < 0 && curr.dy > 0);
+
+      if (xReversed || yReversed) {
         oscillationCount++;
+        oscillationDistances.push(curr.distance);
       }
     }
-    if (oscillationCount >= 6) { // 6+ direction reversals in 9 movements
-      const matchRatio = oscillationCount / 7;
-      const { confidence, score } = calculateConfidence(matchRatio, 0.8);
+
+    // CRITICAL: Only flag if oscillating AND has bot-like low variance
+    const oscillationDistanceVariance = calculateVariance(oscillationDistances);
+    if (
+      oscillationCount >= DETECTION_CONFIG.MIN_OSCILLATION_COUNT &&
+      oscillationDistanceVariance < DETECTION_CONFIG.MAX_JIGGLER_DISTANCE_VARIANCE &&
+      intervalVariance < DETECTION_CONFIG.MAX_JIGGLER_INTERVAL_VARIANCE
+    ) {
+      const matchRatio = oscillationCount / (movements.length - 1);
+      const { confidence, score } = calculateConfidence(matchRatio, 0.9);
       return {
         type: 'OSCILLATING_MOUSE',
-        details: `Mouse oscillating back and forth (${oscillationCount} direction reversals) - Mouse jiggler pattern detected`,
+        details: `Mouse oscillating with ${oscillationCount} reversals, distance variance: ${oscillationDistanceVariance.toFixed(1)}px, timing variance: ${intervalVariance.toFixed(1)}ms - Mouse jiggler pattern`,
         confidence,
         confidenceScore: score
       };
     }
 
+    // Pattern 3: Linear movement with EXACT same distances and timing (jiggler moving in one direction)
+    // Only flag if BOTH distance AND timing variance are bot-like
+    if (
+      distanceVariance < DETECTION_CONFIG.MAX_JIGGLER_DISTANCE_VARIANCE &&
+      intervalVariance < DETECTION_CONFIG.MAX_JIGGLER_INTERVAL_VARIANCE
+    ) {
+      const directions = movements.map(m => Math.atan2(m.dy, m.dx));
+      const avgDirection = directions.reduce((a, b) => a + b, 0) / directions.length;
+      const avgDirectionDegrees = Math.round((avgDirection * 180) / Math.PI);
+
+      let similarDirections = 0;
+      for (const dir of directions) {
+        if (Math.abs(dir - avgDirection) < DETECTION_CONFIG.DIRECTION_TOLERANCE) {
+          similarDirections++;
+        }
+      }
+
+      // Need BOTH: consistent direction AND bot-like variance
+      if (similarDirections >= movements.length * 0.7) {
+        const matchRatio = similarDirections / movements.length;
+        const { confidence, score } = calculateConfidence(matchRatio, 0.85);
+        return {
+          type: 'LINEAR_MOUSE_MOVEMENT',
+          details: `Mouse moving at ${avgDirectionDegrees}° with distance variance: ${distanceVariance.toFixed(1)}px, timing variance: ${intervalVariance.toFixed(1)}ms - Mouse jiggler detected`,
+          confidence,
+          confidenceScore: score
+        };
+      }
+    }
+
+    // If we get here, movement has human-like variance - NOT a jiggler
     return null;
   };
 
@@ -347,39 +416,55 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
       deviceFingerprintRef.current = collectFingerprint();
     }
 
-    // Keyboard activity handler
+    // Keyboard activity handler with throttling
     const handleKeydown = (e: KeyboardEvent) => {
       const now = Date.now();
 
-      // Add to history
+      // Add to history (always capture keystrokes)
       keystrokeHistoryRef.current.push({
         key: e.key,
         timestamp: now,
       });
 
-      // Keep only last 20 keystrokes
-      if (keystrokeHistoryRef.current.length > 20) {
+      // Keep larger history for better pattern detection
+      if (keystrokeHistoryRef.current.length > 30) {
         keystrokeHistoryRef.current.shift();
       }
+
+      // THROTTLE: Only check patterns every 200ms, not on every keystroke
+      if (now - lastPatternCheckRef.current < DETECTION_CONFIG.PATTERN_CHECK_THROTTLE_MS) {
+        // Still count as activity even if we don't check patterns
+        lastActivityRef.current = now;
+        hasRecentActivityRef.current = true;
+        onActivityDetected?.();
+        return;
+      }
+      lastPatternCheckRef.current = now;
 
       // Check for suspicious patterns
       const patternDetected = detectSuspiciousKeystrokePattern(keystrokeHistoryRef.current);
 
       if (patternDetected) {
-        suspiciousActivityCountRef.current++;
+        // Only increment once per DECAY_INTERVAL to prevent rapid accumulation
+        if (now - lastSuspiciousIncrementTimeRef.current > DETECTION_CONFIG.DECAY_INTERVAL_MS / 10) {
+          suspiciousActivityCountRef.current++;
+          lastSuspiciousIncrementTimeRef.current = now;
+        }
+
         // Track when pattern first started
         if (!patternStartTimeRef.current) {
           patternStartTimeRef.current = now;
         }
         lastPatternDetectedRef.current = patternDetected;
 
-        // If more than 3 suspicious patterns detected, don't count as activity
-        if (suspiciousActivityCountRef.current > 3) {
+        // IMPROVED: Higher threshold (15 instead of 3)
+        if (suspiciousActivityCountRef.current > DETECTION_CONFIG.SUSPICIOUS_THRESHOLD) {
           return;
         }
       } else {
-        // Reset suspicious count on genuine activity
-        suspiciousActivityCountRef.current = Math.max(0, suspiciousActivityCountRef.current - 1);
+        // TIME-BASED DECAY: Reduce suspicious count more aggressively on genuine activity
+        // Decay by 2 on genuine activity (faster recovery from false positives)
+        suspiciousActivityCountRef.current = Math.max(0, suspiciousActivityCountRef.current - 2);
         if (suspiciousActivityCountRef.current === 0) {
           patternStartTimeRef.current = null;
         }
@@ -390,38 +475,57 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
       onActivityDetected?.();
     };
 
-    // Mouse activity handler
+    // Mouse activity handler with throttling
     const handleMouseMove = (e: globalThis.MouseEvent) => {
       const now = Date.now();
 
-      // Add to history
+      // Add to history (always capture mouse positions)
       mouseHistoryRef.current.push({
         x: e.clientX,
         y: e.clientY,
         timestamp: now,
       });
 
-      // Keep only last 20 positions
-      if (mouseHistoryRef.current.length > 20) {
+      // Keep larger history for better variance calculation
+      if (mouseHistoryRef.current.length > 40) {
         mouseHistoryRef.current.shift();
       }
+
+      // THROTTLE: Only check patterns every 200ms, not on every mouse event
+      // This is critical - browsers fire mousemove at 60Hz+
+      if (now - lastPatternCheckRef.current < DETECTION_CONFIG.PATTERN_CHECK_THROTTLE_MS) {
+        // Still count as activity even if we don't check patterns
+        lastActivityRef.current = now;
+        hasRecentActivityRef.current = true;
+        onActivityDetected?.();
+        return;
+      }
+      lastPatternCheckRef.current = now;
 
       // Check for suspicious patterns
       const patternDetected = detectSuspiciousMousePattern(mouseHistoryRef.current);
 
       if (patternDetected) {
-        suspiciousActivityCountRef.current++;
+        // Only increment once per 3 seconds to prevent rapid accumulation
+        if (now - lastSuspiciousIncrementTimeRef.current > DETECTION_CONFIG.DECAY_INTERVAL_MS / 10) {
+          suspiciousActivityCountRef.current++;
+          lastSuspiciousIncrementTimeRef.current = now;
+        }
+
         // Track when pattern first started
         if (!patternStartTimeRef.current) {
           patternStartTimeRef.current = now;
         }
         lastPatternDetectedRef.current = patternDetected;
 
-        if (suspiciousActivityCountRef.current > 3) {
+        // IMPROVED: Higher threshold (15 instead of 3)
+        if (suspiciousActivityCountRef.current > DETECTION_CONFIG.SUSPICIOUS_THRESHOLD) {
           return;
         }
       } else {
-        suspiciousActivityCountRef.current = Math.max(0, suspiciousActivityCountRef.current - 1);
+        // TIME-BASED DECAY: Reduce suspicious count more aggressively on genuine activity
+        // Decay by 2 on genuine activity (faster recovery from false positives)
+        suspiciousActivityCountRef.current = Math.max(0, suspiciousActivityCountRef.current - 2);
         if (suspiciousActivityCountRef.current === 0) {
           patternStartTimeRef.current = null;
         }
@@ -450,7 +554,7 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
     // Send heartbeat every 30 seconds if there was genuine activity
     heartbeatIntervalRef.current = setInterval(async () => {
       if (hasRecentActivityRef.current) {
-        const isSuspiciousActivity = suspiciousActivityCountRef.current > 3;
+        const isSuspiciousActivity = suspiciousActivityCountRef.current > DETECTION_CONFIG.SUSPICIOUS_THRESHOLD;
         const patternInfo = lastPatternDetectedRef.current;
         const fingerprint = deviceFingerprintRef.current;
         const now = Date.now();
@@ -492,7 +596,7 @@ export function ActivityTracker({ isActive, onActivityDetected }: ActivityTracke
           // Silently fail - don't alert user
         }
       }
-    }, 30000); // Every 30 seconds
+    }, 20 * 60 * 1000); // Every 20 minutes
 
     // Check for idle state every minute
     idleCheckIntervalRef.current = setInterval(() => {

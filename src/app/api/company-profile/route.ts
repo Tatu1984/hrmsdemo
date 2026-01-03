@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       // Create default profile if none exists
       profile = await prisma.companyProfile.create({
         data: {
-          companyName: 'Your Company Name',
-          country: 'Country',
+          companyName: 'Infiniti Tech Partners',
+          country: 'India',
         },
         include: {
           bankAccounts: true,

@@ -75,26 +75,28 @@ export async function GET() {
       return false;
     });
 
-    // Get unread message counts for each contact
-    const contactsWithUnread = await Promise.all(
-      contacts.map(async (contact) => {
-        const unreadCount = await prisma.message.count({
-          where: {
-            senderId: contact.id,
-            recipientId: currentUser.employee!.id,
-            read: false,
-          },
-        });
+    // Get unread message counts for all contacts in a single query (fixes N+1)
+    const contactIds = contacts.map(c => c.id);
+    const unreadCounts = await prisma.message.groupBy({
+      by: ['senderId'],
+      where: {
+        senderId: { in: contactIds },
+        recipientId: currentUser.employee!.id,
+        read: false,
+      },
+      _count: true,
+    });
 
-        return {
-          id: contact.user?.id || contact.id,
-          name: contact.name,
-          designation: contact.designation,
-          online: false, // TODO: Implement real-time online status
-          unreadCount,
-        };
-      })
-    );
+    // Create a map for O(1) lookup
+    const unreadMap = new Map(unreadCounts.map(u => [u.senderId, u._count]));
+
+    const contactsWithUnread = contacts.map(contact => ({
+      id: contact.user?.id || contact.id,
+      name: contact.name,
+      designation: contact.designation,
+      online: false, // TODO: Implement real-time online status
+      unreadCount: unreadMap.get(contact.id) || 0,
+    }));
 
     return NextResponse.json(contactsWithUnread);
   } catch (error) {

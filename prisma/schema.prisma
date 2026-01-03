@@ -2,22 +2,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// prisma/schema.prisma
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  username      String    @unique
-  password      String
-  role          Role      @default(EMPLOYEE)
-  employeeId    String?   @unique
-  employee      Employee? @relation(fields: [employeeId], references: [id])
-  permissions   Json?     // Granular section-level permissions
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  email       String    @unique
+  username    String    @unique
+  password    String
+  role        Role      @default(EMPLOYEE)
+  employeeId  String?   @unique
+  permissions Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  employee    Employee? @relation(fields: [employeeId], references: [id])
 
   @@index([email])
   @@index([username])
@@ -25,74 +25,72 @@ model User {
 }
 
 model Employee {
-  id                String      @id @default(cuid())
-  employeeId        String      @unique
-  name              String
-  email             String      @unique
-  altEmail          String?     // Alternate email address
-  phone             String
-  altPhone          String?
-  emergencyContactName  String?  // Emergency contact person name
-  emergencyContactPhone String?  // Emergency contact phone
-  emergencyContactRelation String? // Relationship with emergency contact
-  address           String
-  designation       String
-  salaryType        SalaryType  @default(FIXED)
-  salary            Float       // Total CTC for Fixed, Base for Variable
-  variablePay       Float?      // Only for Variable salary type
-  department        String
-  employeeType      String?     // Sales, Operations, etc.
-  salesTarget       Float?      // Monthly sales target (for sales dept)
-  reportingHeadId   String?
-  reportingHead     Employee?   @relation("ReportingStructure", fields: [reportingHeadId], references: [id])
-  subordinates      Employee[]  @relation("ReportingStructure")
-  dateOfJoining     DateTime
-  profilePicture    String?
-  documents         Json?
-  // KYC Documents
-  aadharNumber      String?
-  panNumber         String?
-  aadharDocument    String?    // File path or URL for Aadhar document
-  panDocument       String?    // File path or URL for PAN document
-  // Bank Details
-  bankName          String?
-  bankAddress       String?
-  accountNumber     String?
-  ifscCode          String?
-  user              User?
-  attendance        Attendance[]
-  leaves            Leave[]
-  tasks             Task[]
-  projects          ProjectMember[]
-  messages          Message[]
-  payroll           Payroll[]
-  bankingDetails    BankingDetails?
-  employeeDocuments EmployeeDocument[]
-  isActive          Boolean     @default(true)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id                       String             @id @default(cuid())
+  employeeId               String             @unique
+  name                     String
+  email                    String             @unique
+  phone                    String
+  altPhone                 String?
+  address                  String
+  designation              String
+  salary                   Float
+  variablePay              Float?
+  department               String
+  employeeType             String?
+  salesTarget              Float?
+  reportingHeadId          String?
+  dateOfJoining            DateTime
+  profilePicture           String?
+  documents                Json?
+  aadharNumber             String?
+  panNumber                String?
+  aadharDocument           String?
+  panDocument              String?
+  bankName                 String?
+  bankAddress              String?
+  accountNumber            String?
+  ifscCode                 String?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  salaryType               SalaryType         @default(FIXED)
+  isActive                 Boolean            @default(true)
+  altEmail                 String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  attendance               Attendance[]
+  bankingDetails           BankingDetails?
+  reportingHead            Employee?          @relation("ReportingStructure", fields: [reportingHeadId], references: [id])
+  subordinates             Employee[]         @relation("ReportingStructure")
+  employeeDocuments        EmployeeDocument[]
+  leaves                   Leave[]
+  messages                 Message[]
+  payroll                  Payroll[]
+  projects                 ProjectMember[]
+  tasks                    Task[]
+  user                     User?
 
   @@index([isActive])
 }
 
 model Attendance {
-  id             String           @id @default(cuid())
-  employeeId     String
-  employee       Employee         @relation(fields: [employeeId], references: [id])
-  date           DateTime
-  punchIn        DateTime?
-  punchOut       DateTime?
-  punchInIp      String?          // IP address when punched in
-  punchOutIp     String?          // IP address when punched out
-  breakStart     DateTime?
-  breakEnd       DateTime?
-  totalHours     Float?
-  breakDuration  Float?           // Total break time in hours
-  idleTime       Float?           // Idle time in hours (logged in but inactive)
-  status         AttendanceStatus @default(ABSENT)
-  activityLogs   ActivityLog[]    // Track all activity heartbeats
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id            String           @id @default(cuid())
+  employeeId    String
+  date          DateTime
+  punchIn       DateTime?
+  punchOut      DateTime?
+  breakStart    DateTime?
+  breakEnd      DateTime?
+  totalHours    Float?
+  breakDuration Float?
+  idleTime      Float?
+  status        AttendanceStatus @default(ABSENT)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  punchInIp     String?
+  punchOutIp    String?
+  activityLogs  ActivityLog[]
+  employee      Employee         @relation(fields: [employeeId], references: [id])
 
   @@unique([employeeId, date], name: "employeeId_date")
   @@index([employeeId])
@@ -101,34 +99,29 @@ model Attendance {
 }
 
 model ActivityLog {
-  id             String     @id @default(cuid())
-  attendanceId   String
-  attendance     Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  timestamp      DateTime   // When the activity was detected
-  active         Boolean    @default(true) // Whether user was active at this timestamp
-  suspicious     Boolean    @default(false) // Whether automated/bot pattern was detected
-  patternType    String?    // Type of pattern detected (REPETITIVE_KEY, LINEAR_MOUSE_MOVEMENT, etc.)
-  patternDetails String?    // Detailed description of the pattern
-
-  // Enhanced detection fields
-  confidence     String?    // LOW, MEDIUM, HIGH - confidence level of detection
-  confidenceScore Float?    // Numerical score 0-100 for detection confidence
-  durationMs     Int?       // How long the suspicious pattern persisted in milliseconds
-  patternStartTime DateTime? // When the suspicious pattern started
-
-  // Fingerprint/Device info
-  ipAddress      String?    // IP address of the user
-  userAgent      String?    // Browser user agent string
-  browserName    String?    // Parsed browser name
-  browserVersion String?    // Parsed browser version
-  osName         String?    // Operating system name
-  osVersion      String?    // Operating system version
-  deviceType     String?    // desktop, mobile, tablet
-  screenResolution String?  // e.g., "1920x1080"
-  timezone       String?    // User's timezone
-  language       String?    // Browser language
-
-  createdAt      DateTime   @default(now())
+  id               String     @id @default(cuid())
+  attendanceId     String
+  timestamp        DateTime
+  active           Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  suspicious       Boolean    @default(false)
+  patternDetails   String?
+  patternType      String?
+  browserName      String?
+  browserVersion   String?
+  confidence       String?
+  confidenceScore  Float?
+  deviceType       String?
+  durationMs       Int?
+  ipAddress        String?
+  language         String?
+  osName           String?
+  osVersion        String?
+  patternStartTime DateTime?
+  screenResolution String?
+  timezone         String?
+  userAgent        String?
+  attendance       Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 
   @@index([attendanceId])
   @@index([timestamp])
@@ -140,16 +133,16 @@ model ActivityLog {
 model Leave {
   id           String      @id @default(cuid())
   employeeId   String
-  employee     Employee    @relation(fields: [employeeId], references: [id])
   leaveType    LeaveType
   startDate    DateTime
   endDate      DateTime
   days         Int
   reason       String
   status       LeaveStatus @default(PENDING)
-  adminComment String?     // Admin comment when approving/rejecting/holding
+  adminComment String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  employee     Employee    @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId])
   @@index([status])
@@ -158,10 +151,10 @@ model Leave {
 
 model Project {
   id              String          @id @default(cuid())
-  projectId       String          @unique // Auto-generated project ID
+  projectId       String          @unique
   name            String
   description     String
-  sowDocument     String?         // Path/URL to signed SoW document
+  sowDocument     String?
   projectType     ProjectType     @default(MILESTONE)
   totalBudget     Float?
   upfrontPayment  Float?          @default(0)
@@ -169,64 +162,64 @@ model Project {
   startDate       DateTime
   endDate         DateTime?
   status          ProjectStatus   @default(ACTIVE)
-  milestones      Json?           // Array of milestone details with success criteria and payment
+  milestones      Json?
   successCriteria String?
-  leadId          String?         // Reference to Lead if converted from sales
-  saleId          String?         // Reference to Sale if created from sale
-  members         ProjectMember[]
-  tasks           Task[]
+  leadId          String?
+  saleId          String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  members         ProjectMember[]
+  tasks           Task[]
 
   @@index([status])
   @@index([startDate])
 }
 
 model ProjectMember {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id])
-  employeeId  String
-  employee    Employee  @relation(fields: [employeeId], references: [id])
-  role        String?
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  projectId  String
+  employeeId String
+  role       String?
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id])
 }
 
 model Task {
-  id            String        @id @default(cuid())
-  projectId     String?
-  project       Project?      @relation(fields: [projectId], references: [id])
-  milestone     String?       // Which milestone this task belongs to (milestone ID)
-  assignedTo    String
-  employee      Employee      @relation(fields: [assignedTo], references: [id])
-  title         String
-  description   String
-  status        TaskStatus    @default(PENDING)
-  priority      Priority      @default(MEDIUM)
-  dueDate       DateTime?
-  updates       TaskUpdate[]  // Developer updates/issues/requirements
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id          String       @id @default(cuid())
+  projectId   String?
+  milestone   String?
+  assignedTo  String
+  title       String
+  description String
+  status      TaskStatus   @default(PENDING)
+  priority    Priority     @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  employee    Employee     @relation(fields: [assignedTo], references: [id])
+  project     Project?     @relation(fields: [projectId], references: [id])
+  updates     TaskUpdate[]
 }
 
 model TaskUpdate {
-  id          String    @id @default(cuid())
-  taskId      String
-  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  content     String    // Update content, issues, requirements
-  createdBy   String    // Employee ID
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  taskId    String
+  content   String
+  createdBy String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model DailyWorkUpdate {
-  id                String    @id @default(cuid())
+  id                String   @id @default(cuid())
   employeeId        String
-  date              DateTime  // The specific day for this update
-  workCompleted     String    // What work was completed
-  obstaclesOvercome String?   // Obstacles that were overcome
-  tasksLeft         String?   // Tasks remaining to be done
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  date              DateTime
+  workCompleted     String
+  obstaclesOvercome String?
+  tasksLeft         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@unique([employeeId, date], name: "employeeId_date")
   @@index([employeeId])
@@ -234,42 +227,31 @@ model DailyWorkUpdate {
 }
 
 model Payroll {
-  id                String        @id @default(cuid())
-  employeeId        String
-  employee          Employee      @relation(fields: [employeeId], references: [id])
-  month             Int
-  year              Int
-  workingDays       Int           @default(30)
-  daysPresent       Int           @default(0)
-  daysAbsent        Int           @default(0)
-
-  // Salary Components
-  basicSalary       Float         // Basic pay component
-  variablePay       Float         @default(0) // Variable/incentive component
-
-  // Sales/Target (for sales department)
-  salesTarget       Float?        // Monthly sales target
-  targetAchieved    Float?        @default(0) // Actual target achieved
-
-  // Payable Amounts
-  basicPayable      Float         // Calculated based on attendance
-  variablePayable   Float         @default(0) // Calculated based on target achievement
-  grossSalary       Float         // Total payable before deductions
-
-  // Deductions
-  professionalTax   Float         @default(200) // P.tax
-  tds               Float         @default(0) // Tax Deducted at Source
-  penalties         Float         @default(0) // Any penalties
-  advancePayment    Float         @default(0) // Advance taken
-  otherDeductions   Float         @default(0) // Other deductions
-  totalDeductions   Float         @default(0) // Sum of all deductions
-
-  // Final Amount
-  netSalary         Float         // Final amount after deductions
-
-  status            PayrollStatus @default(PENDING)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  employeeId      String
+  month           Int
+  year            Int
+  workingDays     Int           @default(30)
+  daysPresent     Int           @default(0)
+  daysAbsent      Int           @default(0)
+  basicSalary     Float
+  variablePay     Float         @default(0)
+  salesTarget     Float?
+  targetAchieved  Float?        @default(0)
+  basicPayable    Float
+  variablePayable Float         @default(0)
+  grossSalary     Float
+  professionalTax Float         @default(200)
+  tds             Float         @default(0)
+  penalties       Float         @default(0)
+  advancePayment  Float         @default(0)
+  otherDeductions Float         @default(0)
+  totalDeductions Float         @default(0)
+  netSalary       Float
+  status          PayrollStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  employee        Employee      @relation(fields: [employeeId], references: [id])
 
   @@unique([employeeId, month, year])
   @@index([employeeId])
@@ -278,80 +260,73 @@ model Payroll {
 }
 
 model SalaryConfig {
-  id              String    @id @default(cuid())
-  pfPercentage    Float     @default(12)
-  esiPercentage   Float     @default(0.75)
-  taxSlabs        Json?
-  bonusRules      Json?
-  updatedAt       DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  pfPercentage  Float    @default(12)
+  esiPercentage Float    @default(0.75)
+  taxSlabs      Json?
+  bonusRules    Json?
+  updatedAt     DateTime @updatedAt
 }
 
 model CompanyProfile {
-  id              String              @id @default(cuid())
-  companyName     String              @default("Infiniti Tech Partners")
-  address1        String?
-  address2        String?
-  city            String?
-  state           String?
-  pincode         String?
-  country         String              @default("India")
-  phone           String?
-  email           String?
-  website         String?
-  logo            String?             // Path to company logo
-  panNumber       String?
-  gstNumber       String?
-  cinNumber       String?             // Corporate Identification Number
-  bankAccounts    CompanyBankAccount[]
-  updatedAt       DateTime            @updatedAt
+  id           String               @id @default(cuid())
+  companyName  String               @default("Infiniti Tech Partners")
+  address1     String?
+  address2     String?
+  city         String?
+  state        String?
+  pincode      String?
+  country      String               @default("India")
+  phone        String?
+  email        String?
+  website      String?
+  logo         String?
+  panNumber    String?
+  gstNumber    String?
+  cinNumber    String?
+  updatedAt    DateTime             @updatedAt
+  bankAccounts CompanyBankAccount[]
 }
 
 model CompanyBankAccount {
-  id              String          @id @default(cuid())
-  companyId       String
-  company         CompanyProfile  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  nickname        String          // e.g., "Main Account", "USD Account", etc.
-  accountType     String          @default("Indian") // "Indian" or "International"
-
-  // Common fields
-  bankName        String
-  accountNumber   String
-  accountHolder   String?
-
-  // Indian bank fields
-  ifscCode        String?
-  branchName      String?
-
-  // International bank fields
-  swiftCode       String?
-  iban            String?
-  routingNumber   String?
-  bankAddress     String?
-
-  currency        String          @default("INR")
-  isDefault       Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id            String         @id @default(cuid())
+  companyId     String
+  nickname      String
+  accountType   String         @default("Indian")
+  bankName      String
+  accountNumber String
+  accountHolder String?
+  ifscCode      String?
+  branchName    String?
+  swiftCode     String?
+  iban          String?
+  routingNumber String?
+  bankAddress   String?
+  currency      String         @default("INR")
+  isDefault     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  company       CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Invoice {
-  id              String          @id @default(cuid())
-  invoiceNumber   String          @unique
-  clientName      String
-  clientEmail     String?
-  clientAddress   String?
-  amount          Float
-  currency        String          @default("INR")
-  status          InvoiceStatus   @default(DRAFT)
-  items           Json?
-  dueDate         DateTime?
-  notes           String?
-  fileUrl         String?
-  paidAmount      Float?
-  paidDate        DateTime?
-  skyDoSynced     Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  clientName    String
+  clientEmail   String?
+  amount        Float
+  currency      String        @default("INR")
+  status        InvoiceStatus @default(DRAFT)
+  items         Json?
+  dueDate       DateTime?
+  notes         String?
+  skyDoSynced   Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  clientAddress String?
+  fileUrl       String?
+  paidAmount    Float?
+  paidDate      DateTime?
 
   @@index([status])
   @@index([dueDate])
@@ -361,22 +336,20 @@ model Account {
   id              String          @id @default(cuid())
   type            AccountType
   categoryId      String
-  category        AccountCategory @relation(fields: [categoryId], references: [id])
-  amount          Float           // Always in INR
+  amount          Float
   currency        String          @default("INR")
   date            DateTime
   description     String
   reference       String?
-  // For incoming payments
   paymentPurpose  String?
-  paymentMode     String?         // Bank Transfer, Cash, Cheque, etc
+  paymentMode     String?
   senderName      String?
   bankInfo        String?
-  // For outgoing payments
-  paymentTo       String?         // Recipient name
-  paymentCategory String?         // Salary, Office Expense, etc
+  paymentTo       String?
+  paymentCategory String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  category        AccountCategory @relation(fields: [categoryId], references: [id])
 }
 
 model AccountCategory {
@@ -384,83 +357,86 @@ model AccountCategory {
   name          String      @unique
   type          AccountType
   subCategories Json?
-  accounts      Account[]
   createdAt     DateTime    @default(now())
+  accounts      Account[]
 }
 
 model Message {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   senderId    String
-  sender      Employee    @relation(fields: [senderId], references: [id])
   recipientId String
   subject     String?
   content     String
-  read        Boolean     @default(false)
-  tracked     Boolean     @default(true)
-  createdAt   DateTime    @default(now())
+  read        Boolean  @default(false)
+  tracked     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  sender      Employee @relation(fields: [senderId], references: [id])
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([recipientId, read])
+  @@index([createdAt])
 }
 
 model MessagingPermission {
-  id              String    @id @default(cuid())
-  userId          String
-  canMessagePeers Boolean   @default(true)   // Can message same level employees
-  canMessageManager Boolean @default(true)   // Can message their manager
-  canMessageDirector Boolean @default(false) // Can message directors/founder
-  allowedRecipients String? // JSON array of specific user IDs allowed
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@unique([userId])
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  canMessagePeers    Boolean  @default(true)
+  canMessageManager  Boolean  @default(true)
+  canMessageDirector Boolean  @default(false)
+  allowedRecipients  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model SalesTarget {
-  id              String    @id @default(cuid())
-  employeeId      String    // Sales agent/executive
-  month           Int       // 1-12
-  year            Int
-  targetAmount    Float     // Target in USD
-  achievedAmount  Float     @default(0) // Achieved in USD
-  commission      Float     @default(0) // Commission earned
-  numberOfSales   Int       @default(0) // Number of sales made
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  employeeId     String
+  month          Int
+  year           Int
+  targetAmount   Float
+  achievedAmount Float    @default(0)
+  commission     Float    @default(0)
+  numberOfSales  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([employeeId, month, year])
 }
 
 model Report {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   reportType  ReportType
-  month       Int?        // For monthly reports
+  month       Int?
   year        Int?
-  data        Json        // Report data in JSON format
-  generatedBy String?     // Employee ID who generated
-  createdAt   DateTime    @default(now())
+  data        Json
+  generatedBy String?
+  createdAt   DateTime   @default(now())
 }
 
 model Lead {
-  id                  String          @id @default(cuid())
-  leadNumber          String          @unique
-  companyName         String
-  companyAddress      String?
-  contactName         String
-  email               String
-  phone               String
-  altPhone            String?
-  projectType         String?         // Services pitched for
-  estimatedValue      Float?          // Estimated deal value in USD
-  source              String?         // Website, Referral, Cold Call, etc
-  executiveName       String?         // Sales executive or agent name
-  communicationDetails String?        // Details of communication
-  status              CRMLeadStatus   @default(NEW)
-  callbackDateTime    DateTime?       // Call back or connect back date and time
-  assignedTo          String?
-  notes               String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  convertedAt         DateTime?
-  saleId              String?         @unique
-  sale                Sale?           @relation(fields: [saleId], references: [id])
+  id                   String        @id @default(cuid())
+  leadNumber           String        @unique
+  companyName          String
+  companyAddress       String?
+  contactName          String
+  email                String
+  phone                String
+  altPhone             String?
+  projectType          String?
+  estimatedValue       Float?
+  source               String?
+  executiveName        String?
+  communicationDetails String?
+  status               CRMLeadStatus @default(NEW)
+  callbackDateTime     DateTime?
+  assignedTo           String?
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  convertedAt          DateTime?
+  saleId               String?       @unique
+  sale                 Sale?         @relation(fields: [saleId], references: [id])
 
   @@index([status])
   @@index([assignedTo])
@@ -468,41 +444,408 @@ model Lead {
 }
 
 model Sale {
-  id              String      @id @default(cuid())
-  saleNumber      String      @unique
-  leadId          String?     @unique
-  lead            Lead?
-  companyName     String
-  contactName     String
-  email           String
-  phone           String
-  product         String
-  quantity        Int         @default(1)
-  unitPrice       Float
-  grossAmount     Float       // Total sale amount in USD
-  upfrontAmount   Float       // Upfront payment received in USD
-  discount        Float       @default(0)
-  taxPercentage   Float       @default(0)
-  taxAmount       Float       @default(0)
-  netAmount       Float       // Final amount after discount + tax
-  currency        String      @default("USD")
-  status          SaleStatus  @default(PENDING)
-  closedBy        String?     // Employee ID who closed the sale
-  closedAt        DateTime?
-  month           Int?        // Month of sale (1-12)
-  year            Int?        // Year of sale
-  commission      Float?      // Commission for sales agent
-  notes           String?
-  accountSynced   Boolean     @default(false) // Whether financial entry created
-  projectSynced   Boolean     @default(false) // Whether project created
-  projectId       String?     // Reference to created project
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String     @id @default(cuid())
+  saleNumber    String     @unique
+  leadId        String?    @unique
+  companyName   String
+  contactName   String
+  email         String
+  phone         String
+  product       String
+  quantity      Int        @default(1)
+  unitPrice     Float
+  grossAmount   Float
+  upfrontAmount Float
+  discount      Float      @default(0)
+  taxPercentage Float      @default(0)
+  taxAmount     Float      @default(0)
+  netAmount     Float
+  currency      String     @default("USD")
+  status        SaleStatus @default(PENDING)
+  closedBy      String?
+  closedAt      DateTime?
+  month         Int?
+  year          Int?
+  commission    Float?
+  notes         String?
+  accountSynced Boolean    @default(false)
+  projectSynced Boolean    @default(false)
+  projectId     String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  lead          Lead?
 
   @@index([status])
   @@index([closedBy])
   @@index([month, year])
   @@index([createdAt])
+}
+
+model HRDocument {
+  id          String    @id @default(cuid())
+  type        HRDocType
+  title       String
+  description String?
+  content     String?
+  filePath    String?
+  year        Int?
+  isActive    Boolean   @default(true)
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model IntegrationConnection {
+  id                 String                   @id @default(cuid())
+  platform           IntegrationType
+  name               String
+  authType           String
+  accessToken        String
+  refreshToken       String?
+  tokenExpiry        DateTime?
+  organizationUrl    String?
+  organizationName   String?
+  workspaceId        String?
+  syncEnabled        Boolean                  @default(true)
+  syncFrequency      String                   @default("MANUAL")
+  lastSyncAt         DateTime?
+  lastSyncStatus     String?
+  lastSyncError      String?
+  isActive           Boolean                  @default(true)
+  createdBy          String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  confluenceSpaceKey String?
+  confluencePages    ConfluencePage[]
+  commits            DeveloperCommit[]
+  userMappings       IntegrationUserMapping[]
+  workItems          WorkItem[]
+
+  @@index([platform])
+  @@index([isActive])
+}
+
+model IntegrationUserMapping {
+  id             String                @id @default(cuid())
+  connectionId   String
+  employeeId     String
+  employeeEmail  String
+  externalUserId String
+  externalEmail  String
+  externalName   String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, employeeId])
+  @@unique([connectionId, externalUserId])
+  @@index([employeeId])
+}
+
+model WorkItem {
+  id             String                @id @default(cuid())
+  connectionId   String
+  externalId     String
+  externalUrl    String
+  platform       IntegrationType
+  title          String
+  description    String?
+  workItemType   String
+  status         String
+  priority       String?
+  assignedToId   String?
+  assignedTo     String?
+  assignedToName String?
+  createdDate    DateTime
+  modifiedDate   DateTime?
+  completedDate  DateTime?
+  dueDate        DateTime?
+  projectName    String?
+  projectId      String?
+  areaPath       String?
+  iterationPath  String?
+  storyPoints    Int?
+  sectionId      String?
+  sectionName    String?
+  tags           Json?
+  metadata       Json?
+  lastSyncedAt   DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  parentPageId   String?
+  spaceKey       String?
+  spaceName      String?
+  version        Int?
+  commits        DeveloperCommit[]
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId])
+  @@index([assignedToId])
+  @@index([platform])
+  @@index([status])
+  @@index([createdDate])
+}
+
+model DeveloperCommit {
+  id              String                @id @default(cuid())
+  connectionId    String
+  employeeId      String
+  commitHash      String
+  commitMessage   String
+  commitUrl       String?
+  repositoryName  String
+  repositoryId    String?
+  branchName      String?
+  filesChanged    Int                   @default(0)
+  linesAdded      Int                   @default(0)
+  linesDeleted    Int                   @default(0)
+  commitDate      DateTime
+  authorDate      DateTime?
+  workItemId      String?
+  linkedWorkItems Json?
+  authorName      String
+  authorEmail     String
+  lastSyncedAt    DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  workItem        WorkItem?             @relation(fields: [workItemId], references: [id])
+
+  @@unique([connectionId, commitHash])
+  @@index([employeeId])
+  @@index([commitDate])
+  @@index([repositoryName])
+}
+
+model PullRequest {
+  id             String    @id @default(cuid())
+  connectionId   String
+  externalId     String
+  externalUrl    String
+  title          String
+  description    String?
+  status         String
+  repositoryName String
+  repositoryId   String?
+  sourceBranch   String
+  targetBranch   String
+  createdById    String?
+  createdByName  String
+  reviewers      Json?
+  createdDate    DateTime
+  closedDate     DateTime?
+  mergedDate     DateTime?
+  commitsCount   Int       @default(0)
+  filesChanged   Int       @default(0)
+  lastSyncedAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([createdById])
+  @@index([createdDate])
+}
+
+model ConfluencePage {
+  id             String                @id @default(cuid())
+  connectionId   String
+  externalId     String
+  type           String                @default("page")
+  status         String                @default("current")
+  title          String
+  content        String
+  spaceId        String?
+  spaceKey       String?
+  spaceName      String?
+  parentId       String?
+  parentType     String?
+  position       Int?
+  authorId       String?
+  authorName     String?
+  ownerId        String?
+  version        Int                   @default(1)
+  versionMessage String?
+  metadata       Json?
+  createdDate    DateTime
+  updatedDate    DateTime
+  lastSyncedAt   DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId])
+  @@index([spaceKey])
+  @@index([parentId])
+  @@index([createdDate])
+}
+
+model BankingDetails {
+  id                String    @id @default(cuid())
+  employeeId        String    @unique
+  bankName          String
+  branchName        String?
+  accountHolderName String
+  accountNumber     String
+  accountType       String?
+  ifscCode          String
+  swiftCode         String?
+  upiId             String?
+  panNumber         String?
+  pfAccountNumber   String?
+  esiNumber         String?
+  uanNumber         String?
+  isVerified        Boolean   @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}
+
+model EmployeeDocument {
+  id               String       @id @default(cuid())
+  employeeId       String
+  documentType     DocumentType
+  documentName     String
+  fileName         String
+  fileUrl          String
+  fileSize         Int?
+  mimeType         String?
+  documentNumber   String?
+  issuedDate       DateTime?
+  expiryDate       DateTime?
+  issuingAuthority String?
+  isVerified       Boolean      @default(false)
+  verifiedBy       String?
+  verifiedAt       DateTime?
+  notes            String?
+  uploadedBy       String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  employee         Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([documentType])
+}
+
+model Designation {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  level        Int           @default(0)
+  departmentId String?
+  parentId     String?
+  description  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  parent       Designation?  @relation("DesignationHierarchy", fields: [parentId], references: [id])
+  children     Designation[] @relation("DesignationHierarchy")
+
+  @@index([level])
+  @@index([departmentId])
+  @@index([isActive])
+}
+
+model Department {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String?       @unique
+  description  String?
+  headId       String?
+  parentId     String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  parent       Department?   @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children     Department[]  @relation("DepartmentHierarchy")
+  designations Designation[]
+
+  @@index([isActive])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  userName   String
+  userRole   String
+  action     String
+  entityType String
+  entityId   String
+  entityName String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model BrowserActivityLog {
+  id               String              @id @default(cuid())
+  userId           String
+  userName         String
+  userRole         String
+  employeeId       String?
+  eventType        BrowserEventType
+  sessionId        String?
+  tabId            String?
+  browserName      String?
+  browserVersion   String?
+  osName           String?
+  osVersion        String?
+  deviceType       String?
+  screenResolution String?
+  timezone         String?
+  language         String?
+  ipAddress        String?
+  userAgent        String?
+  pageUrl          String?
+  pagePath         String?
+  duration         Int?                // Duration in seconds (for session end events)
+  metadata         Json?
+  createdAt        DateTime            @default(now())
+
+  @@index([userId])
+  @@index([employeeId])
+  @@index([eventType])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+enum BrowserEventType {
+  TAB_OPENED
+  TAB_CLOSED
+  TAB_VISIBLE
+  TAB_HIDDEN
+  TAB_FOCUSED
+  TAB_BLURRED
+  SESSION_START
+  SESSION_END
+  PAGE_LOAD
+  PAGE_UNLOAD
+  WINDOW_MINIMIZED
+  WINDOW_RESTORED
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  year        Int
+  isOptional  Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([year])
 }
 
 enum Role {
@@ -587,11 +930,11 @@ enum ProjectType {
 }
 
 enum ReportType {
-  APR           // Attendance Performance Report
-  DSR           // Daily Sales Report
-  PERFORMANCE   // Employee Performance Report
-  SALES         // Sales Report
-  ACCOUNTS      // Account Report
+  APR
+  DSR
+  PERFORMANCE
+  SALES
+  ACCOUNTS
 }
 
 enum SaleStatus {
@@ -608,289 +951,11 @@ enum PayrollStatus {
   PAID
 }
 
-model HRDocument {
-  id            String    @id @default(cuid())
-  type          HRDocType
-  title         String
-  description   String?
-  content       String?   // For text-based documents (policies, hierarchy)
-  filePath      String?   // For uploaded files
-  year          Int?      // For holiday lists
-  isActive      Boolean   @default(true)
-  createdBy     String?   // Employee ID
-  updatedBy     String?   // Employee ID
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
 enum HRDocType {
   POLICY
   HOLIDAY_LIST
   COMPANY_HIERARCHY
   OTHER
-}
-
-// ============================================
-// INTEGRATIONS: Azure DevOps, Asana & Confluence
-// ============================================
-
-model IntegrationConnection {
-  id                String              @id @default(cuid())
-  platform          IntegrationType     // AZURE_DEVOPS, ASANA, CONFLUENCE
-  name              String              // Friendly name (e.g., "My Azure DevOps", "Client Azure")
-
-  // Authentication
-  authType          String              // PAT, OAUTH, API_KEY
-  accessToken       String              // Encrypted token
-  refreshToken      String?             // For OAuth
-  tokenExpiry       DateTime?
-
-  // Platform-specific config
-  organizationUrl   String?             // Azure DevOps: https://dev.azure.com/orgname | Confluence: https://yoursite.atlassian.net
-  organizationName  String?             // Azure DevOps organization name
-  workspaceId       String?             // Asana workspace ID
-  confluenceSpaceKey String?            // Confluence space key
-
-  // Sync configuration
-  syncEnabled       Boolean             @default(true)
-  syncFrequency     String              @default("MANUAL") // MANUAL, HOURLY, DAILY
-  lastSyncAt        DateTime?
-  lastSyncStatus    String?             // SUCCESS, FAILED, PARTIAL
-  lastSyncError     String?
-
-  // User mapping
-  userMappings      IntegrationUserMapping[]
-  workItems         WorkItem[]
-  commits           DeveloperCommit[]
-  confluencePages   ConfluencePage[]
-
-  isActive          Boolean             @default(true)
-  createdBy         String?             // Employee ID
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-
-  @@index([platform])
-  @@index([isActive])
-}
-
-model IntegrationUserMapping {
-  id              String                @id @default(cuid())
-  connectionId    String
-  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-
-  // HRMS Employee
-  employeeId      String
-  employeeEmail   String
-
-  // External platform user
-  externalUserId  String                // Azure DevOps user ID or Asana user GID
-  externalEmail   String
-  externalName    String
-
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-
-  @@unique([connectionId, employeeId])
-  @@unique([connectionId, externalUserId])
-  @@index([employeeId])
-}
-
-model WorkItem {
-  id                String                @id @default(cuid())
-  connectionId      String
-  connection        IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-
-  // External platform reference
-  externalId        String                // Work item ID from Azure/Asana
-  externalUrl       String                // Direct link to work item
-  platform          IntegrationType
-
-  // Basic info
-  title             String
-  description       String?
-  workItemType      String                // Azure: Story, Task, Bug, Epic | Asana: Task, Subtask | Confluence: Page, Blog
-  status            String                // Platform-specific status
-  priority          String?
-
-  // Assignment
-  assignedToId      String?               // HRMS Employee ID
-  assignedTo        String?               // External user ID
-  assignedToName    String?
-
-  // Dates
-  createdDate       DateTime
-  modifiedDate      DateTime?
-  completedDate     DateTime?
-  dueDate           DateTime?
-
-  // Project/Board reference
-  projectName       String?
-  projectId         String?               // External project/board ID
-
-  // Azure DevOps specific
-  areaPath          String?
-  iterationPath     String?
-  storyPoints       Int?
-
-  // Asana specific
-  sectionId         String?
-  sectionName       String?
-  tags              Json?                 // Array of tags
-
-  // Confluence specific
-  spaceKey          String?               // Confluence space key
-  spaceName         String?               // Confluence space name
-  parentPageId      String?               // Parent page ID
-  version           Int?                  // Page version number
-
-  // Metadata
-  metadata          Json?                 // Additional platform-specific data
-  lastSyncedAt      DateTime              @default(now())
-
-  // Relations
-  commits           DeveloperCommit[]
-
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-
-  @@unique([connectionId, externalId])
-  @@index([connectionId])
-  @@index([assignedToId])
-  @@index([platform])
-  @@index([status])
-  @@index([createdDate])
-}
-
-model DeveloperCommit {
-  id              String                @id @default(cuid())
-  connectionId    String
-  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-
-  // Employee reference
-  employeeId      String
-
-  // Commit details
-  commitHash      String
-  commitMessage   String
-  commitUrl       String?
-
-  // Repository info
-  repositoryName  String
-  repositoryId    String?
-  branchName      String?
-
-  // Changes
-  filesChanged    Int                   @default(0)
-  linesAdded      Int                   @default(0)
-  linesDeleted    Int                   @default(0)
-
-  // Dates
-  commitDate      DateTime
-  authorDate      DateTime?
-
-  // Work item linkage
-  workItemId      String?
-  workItem        WorkItem?             @relation(fields: [workItemId], references: [id])
-  linkedWorkItems Json?                 // Array of work item IDs mentioned in commit
-
-  // Author info
-  authorName      String
-  authorEmail     String
-
-  lastSyncedAt    DateTime              @default(now())
-  createdAt       DateTime              @default(now())
-
-  @@unique([connectionId, commitHash])
-  @@index([employeeId])
-  @@index([commitDate])
-  @@index([repositoryName])
-}
-
-model PullRequest {
-  id              String                @id @default(cuid())
-  connectionId    String
-
-  // PR details
-  externalId      String                // PR number/ID
-  externalUrl     String
-  title           String
-  description     String?
-  status          String                // Active, Completed, Abandoned
-
-  // Repository
-  repositoryName  String
-  repositoryId    String?
-  sourceBranch    String
-  targetBranch    String
-
-  // People
-  createdById     String?               // HRMS Employee ID
-  createdByName   String
-  reviewers       Json?                 // Array of reviewer info
-
-  // Dates
-  createdDate     DateTime
-  closedDate      DateTime?
-  mergedDate      DateTime?
-
-  // Stats
-  commitsCount    Int                   @default(0)
-  filesChanged    Int                   @default(0)
-
-  lastSyncedAt    DateTime              @default(now())
-  createdAt       DateTime              @default(now())
-
-  @@unique([connectionId, externalId])
-  @@index([createdById])
-  @@index([createdDate])
-}
-
-model ConfluencePage {
-  id              String                @id @default(cuid())
-  connectionId    String
-  connection      IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-
-  // Page identification
-  externalId      String                // Confluence page ID
-  type            String                @default("page")
-  status          String                @default("current")
-
-  // Content
-  title           String
-  content         String                // HTML storage format
-
-  // Hierarchy
-  spaceId         String?
-  spaceKey        String?
-  spaceName       String?
-  parentId        String?               // External parent page ID
-  parentType      String?
-  position        Int?
-
-  // Authorship
-  authorId        String?
-  authorName      String?
-  ownerId         String?
-
-  // Version control
-  version         Int                   @default(1)
-  versionMessage  String?
-
-  // Metadata
-  metadata        Json?                 // Additional Confluence metadata
-
-  // Timestamps
-  createdDate     DateTime
-  updatedDate     DateTime
-  lastSyncedAt    DateTime              @default(now())
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-
-  @@unique([connectionId, externalId])
-  @@index([connectionId])
-  @@index([spaceKey])
-  @@index([parentId])
-  @@index([createdDate])
 }
 
 enum IntegrationType {
@@ -899,180 +964,390 @@ enum IntegrationType {
   CONFLUENCE
 }
 
-model BankingDetails {
-  id                  String    @id @default(cuid())
-  employeeId          String    @unique
-  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  // Primary Bank Account
-  bankName            String
-  branchName          String?
-  accountHolderName   String
-  accountNumber       String
-  accountType         String?   // Savings, Current, etc.
-  ifscCode            String
-  swiftCode           String?
-
-  // Additional Banking Info
-  upiId               String?
-  panNumber           String?
-  pfAccountNumber     String?   // Provident Fund
-  esiNumber           String?   // Employee State Insurance
-  uanNumber           String?   // Universal Account Number for PF
-
-  // Verification
-  isVerified          Boolean   @default(false)
-  verifiedBy          String?
-  verifiedAt          DateTime?
-
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  @@index([employeeId])
-}
-
-model EmployeeDocument {
-  id              String          @id @default(cuid())
-  employeeId      String
-  employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  documentType    DocumentType
-  documentName    String
-  fileName        String
-  fileUrl         String          // Cloud storage URL or local path
-  fileSize        Int?            // File size in bytes
-  mimeType        String?
-
-  // Document Details
-  documentNumber  String?         // For ID documents like Aadhar, PAN, Passport
-  issuedDate      DateTime?
-  expiryDate      DateTime?
-  issuingAuthority String?
-
-  // Verification
-  isVerified      Boolean         @default(false)
-  verifiedBy      String?
-  verifiedAt      DateTime?
-
-  // Metadata
-  notes           String?
-  uploadedBy      String?
-
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  @@index([employeeId])
-  @@index([documentType])
-}
-
 enum DocumentType {
-  // Identity Documents
   AADHAR_CARD
   PAN_CARD
   PASSPORT
   DRIVING_LICENSE
   VOTER_ID
-
-  // Educational Documents
   TENTH_MARKSHEET
   TWELFTH_MARKSHEET
   GRADUATION_DEGREE
   POST_GRADUATION_DEGREE
   OTHER_CERTIFICATE
-
-  // Professional Documents
   OFFER_LETTER
   APPOINTMENT_LETTER
   EXPERIENCE_LETTER
   RELIEVING_LETTER
   SALARY_SLIP
   FORM_16
-
-  // KYC Documents
   BANK_STATEMENT
   CANCELLED_CHEQUE
   ADDRESS_PROOF
-
-  // Other
   PROFILE_PHOTO
   RESUME
   OTHER
 }
 
 enum SalaryType {
-  FIXED     // Fixed monthly salary
-  VARIABLE  // Base salary + variable/commission
+  FIXED
+  VARIABLE
 }
 
-// ============================================
-// ORGANIZATIONAL HIERARCHY
-// ============================================
+// ==========================================
+// AI/ML MODELS
+// ==========================================
 
-model Designation {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  level           Int       @default(0)  // Hierarchy level (0 = top, higher = lower in hierarchy)
-  departmentId    String?   // Optional: link designation to specific department
-  department      Department? @relation(fields: [departmentId], references: [id])
-  parentId        String?   // Parent designation for hierarchy
-  parent          Designation? @relation("DesignationHierarchy", fields: [parentId], references: [id])
-  children        Designation[] @relation("DesignationHierarchy")
-  description     String?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([level])
-  @@index([departmentId])
-  @@index([isActive])
-}
-
-model Department {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  code            String?   @unique  // Short code like DEV, HR, SALES
-  description     String?
-  headId          String?   // Department head (employee ID)
-  parentId        String?   // Parent department for sub-departments
-  parent          Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
-  children        Department[] @relation("DepartmentHierarchy")
-  designations    Designation[]
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([isActive])
-}
-
-model AuditLog {
+// AI Document Processing
+model AIDocumentExtraction {
   id            String   @id @default(cuid())
-  userId        String   // Who made the change
-  userName      String   // Name of user who made change
-  userRole      String   // Role of user (ADMIN/MANAGER)
-  action        String   // CREATE, UPDATE, DELETE
-  entityType    String   // Attendance, Employee, Payroll, etc.
-  entityId      String   // ID of the entity that was changed
-  entityName    String?  // Name/description of entity
-  changes       Json?    // JSON of what changed (old value -> new value)
-  ipAddress     String?
-  userAgent     String?
+  documentId    String?
+  documentType  String
+  fileName      String
+  filePath      String?
+  extractedData Json
+  entities      Json?
+  confidence    Float
+  processingTime Int?
+  status        AIProcessingStatus @default(PENDING)
+  error         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([documentType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// AI Predictions (Attrition, Performance, etc.)
+model AIPrediction {
+  id            String   @id @default(cuid())
+  employeeId    String
+  predictionType PredictionType
+  riskScore     Float
+  riskLevel     String
+  factors       Json
+  recommendations Json?
+  confidence    Float
+  validFrom     DateTime @default(now())
+  validUntil    DateTime
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
+  @@index([employeeId])
+  @@index([predictionType])
+  @@index([riskLevel])
+  @@index([isActive])
+}
+
+// AI Chat Sessions
+model AIChatSession {
+  id          String   @id @default(cuid())
+  userId      String
+  employeeId  String?
+  context     Json?
+  status      ChatSessionStatus @default(ACTIVE)
+  messageCount Int     @default(0)
+  lastMessageAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  messages    AIChatMessage[]
+
   @@index([userId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+// AI Chat Messages
+model AIChatMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  role        ChatRole
+  content     String
+  metadata    Json?
+  intent      String?
+  action      Json?
+  tokens      Int?
+  createdAt   DateTime @default(now())
+  session     AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([role])
+  @@index([createdAt])
+}
+
+// Sentiment Analysis Results
+model AISentimentAnalysis {
+  id          String   @id @default(cuid())
+  sourceType  SentimentSourceType
+  sourceId    String
+  text        String
+  sentiment   String
+  score       Float
+  confidence  Float
+  aspects     Json?
+  emotions    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([sourceType])
+  @@index([sourceId])
+  @@index([sentiment])
+  @@index([createdAt])
+}
+
+// Resume Parsing Results
+model AIResumeAnalysis {
+  id            String   @id @default(cuid())
+  candidateId   String?
+  fileName      String
+  filePath      String?
+  parsedData    Json
+  skills        Json
+  experience    Json
+  education     Json
+  overallScore  Float?
+  matchScores   Json?
+  biasFlags     Json?
+  status        AIProcessingStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([candidateId])
+  @@index([status])
+}
+
+// Skill Gap Analysis
+model AISkillGap {
+  id            String   @id @default(cuid())
+  employeeId    String
+  currentRole   String
+  targetRole    String?
+  gaps          Json
+  overallScore  Float
+  learningPath  Json?
+  priority      String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([isActive])
+}
+
+// AI Automation Rules
+model AIAutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  type        AutomationType
+  conditions  Json
+  actions     Json
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  triggerCount Int     @default(0)
+  lastTriggered DateTime?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  logs        AIAutomationLog[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+// AI Automation Logs
+model AIAutomationLog {
+  id          String   @id @default(cuid())
+  ruleId      String
+  entityType  String
+  entityId    String
+  action      String
+  result      String
+  details     Json?
+  createdAt   DateTime @default(now())
+  rule        AIAutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
   @@index([entityType])
   @@index([createdAt])
 }
 
-model Holiday {
+// Anomaly Detection
+model AIAnomaly {
   id          String   @id @default(cuid())
-  name        String   // Holiday name (e.g., "Republic Day")
-  date        DateTime // Date of the holiday
-  year        Int      // Year for easy filtering
-  isOptional  Boolean  @default(false) // Optional holiday or mandatory
-  description String?  // Additional info
+  type        String
+  severity    String
+  entityType  String
+  entityId    String
+  description String
+  data        Json
+  status      AnomalyStatus @default(OPEN)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  resolution  String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  @@index([date])
-  @@index([year])
+  @@index([type])
+  @@index([severity])
+  @@index([entityType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// AI Generated Insights
+model AIInsight {
+  id          String   @id @default(cuid())
+  type        InsightType
+  category    String
+  title       String
+  description String
+  data        Json
+  importance  Float
+  actionable  Boolean  @default(false)
+  actions     Json?
+  dismissed   Boolean  @default(false)
+  dismissedBy String?
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([category])
+  @@index([importance])
+  @@index([dismissed])
+  @@index([createdAt])
+}
+
+// Natural Language Queries
+model AINLQuery {
+  id            String   @id @default(cuid())
+  userId        String
+  originalQuery String
+  parsedIntent  String?
+  generatedSQL  String?
+  result        Json?
+  executionTime Int?
+  success       Boolean  @default(false)
+  error         String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([success])
+  @@index([createdAt])
+}
+
+// Learning Recommendations
+model AILearningRecommendation {
+  id            String   @id @default(cuid())
+  employeeId    String
+  courseId      String?
+  courseName    String
+  provider      String?
+  skillsCovered Json
+  reason        String
+  priority      Int      @default(0)
+  status        LearningStatus @default(RECOMMENDED)
+  completedAt   DateTime?
+  feedback      String?
+  rating        Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([priority])
+}
+
+// Mentor Matching
+model AIMentorMatch {
+  id            String   @id @default(cuid())
+  mentorId      String
+  menteeId      String
+  matchScore    Float
+  matchReasons  Json
+  topics        Json?
+  status        MentorMatchStatus @default(SUGGESTED)
+  acceptedAt    DateTime?
+  completedAt   DateTime?
+  feedback      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([mentorId, menteeId])
+  @@index([mentorId])
+  @@index([menteeId])
+  @@index([status])
+}
+
+// AI Enums
+enum AIProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PredictionType {
+  ATTRITION
+  PERFORMANCE
+  WORKLOAD
+  ENGAGEMENT
+}
+
+enum ChatSessionStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum SentimentSourceType {
+  FEEDBACK
+  SURVEY
+  MESSAGE
+  REVIEW
+  COMMENT
+}
+
+enum AutomationType {
+  LEAVE_APPROVAL
+  EXPENSE_APPROVAL
+  ATTENDANCE_ALERT
+  PERFORMANCE_ALERT
+  COMPLIANCE_CHECK
+}
+
+enum AnomalyStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum InsightType {
+  ANOMALY
+  TREND
+  PATTERN
+  CORRELATION
+  THRESHOLD
+  COMPARISON
+  FORECAST
+}
+
+enum LearningStatus {
+  RECOMMENDED
+  ENROLLED
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
+
+enum MentorMatchStatus {
+  SUGGESTED
+  ACCEPTED
+  ACTIVE
+  COMPLETED
+  REJECTED
 }

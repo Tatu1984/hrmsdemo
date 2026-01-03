@@ -18,21 +18,21 @@ export default async function CompanyProfilePage() {
     try {
       profile = await prisma.companyProfile.create({
         data: {
-          companyName: 'Your Company Name',
-          country: 'Country',
+          companyName: 'Infiniti Tech Partners',
+          country: 'India',
         },
       });
     } catch (error) {
       // If creation fails, use a default object
       profile = {
         id: 'temp',
-        companyName: 'Your Company Name',
+        companyName: 'Infiniti Tech Partners',
         address1: null,
         address2: null,
         city: null,
         state: null,
         pincode: null,
-        country: 'Country',
+        country: 'India',
         phone: null,
         email: null,
         website: null,

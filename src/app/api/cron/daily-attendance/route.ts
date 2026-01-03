@@ -33,6 +33,17 @@ export async function GET(request: NextRequest) {
     targetDate.setDate(targetDate.getDate() - 1); // Process yesterday
     targetDate.setHours(0, 0, 0, 0);
 
+    // Create UTC date range for database queries to handle timezone correctly
+    // This ensures we match dates stored in any timezone format
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth();
+    const targetDay = targetDate.getDate();
+
+    // Start of day in UTC
+    const startOfDayUTC = new Date(Date.UTC(targetYear, targetMonth, targetDay, 0, 0, 0, 0));
+    // End of day in UTC
+    const endOfDayUTC = new Date(Date.UTC(targetYear, targetMonth, targetDay, 23, 59, 59, 999));
+
     const results = {
       date: targetDate.toISOString(),
       weekendsMarked: 0,
@@ -47,15 +58,30 @@ export async function GET(request: NextRequest) {
     const dayOfWeek = targetDate.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
 
-    // Check if it's a holiday
-    const holiday = await prisma.holiday.findFirst({
+    // Check if it's a holiday - use wider range to catch timezone variations
+    // Also try exact date match as fallback
+    const holidays = await prisma.holiday.findMany({
       where: {
-        date: {
-          gte: targetDate,
-          lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
-        },
+        OR: [
+          // Match using UTC range
+          {
+            date: {
+              gte: startOfDayUTC,
+              lte: endOfDayUTC,
+            },
+          },
+          // Also check with local date range for backwards compatibility
+          {
+            date: {
+              gte: targetDate,
+              lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
+            },
+          },
+        ],
       },
     });
+
+    const holiday = holidays.length > 0 ? holidays[0] : null;
 
     const isHoliday = !!holiday;
 
@@ -189,6 +215,14 @@ export async function POST(request: NextRequest) {
     const targetDate = date ? new Date(date) : new Date();
     targetDate.setHours(0, 0, 0, 0);
 
+    // Create UTC date range for database queries to handle timezone correctly
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth();
+    const targetDay = targetDate.getDate();
+
+    const startOfDayUTC = new Date(Date.UTC(targetYear, targetMonth, targetDay, 0, 0, 0, 0));
+    const endOfDayUTC = new Date(Date.UTC(targetYear, targetMonth, targetDay, 23, 59, 59, 999));
+
     const results = {
       date: targetDate.toISOString(),
       weekendsMarked: 0,
@@ -202,15 +236,27 @@ export async function POST(request: NextRequest) {
     const dayOfWeek = targetDate.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    const holiday = await prisma.holiday.findFirst({
+    // Check if it's a holiday - use wider range to catch timezone variations
+    const holidays = await prisma.holiday.findMany({
       where: {
-        date: {
-          gte: targetDate,
-          lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
-        },
+        OR: [
+          {
+            date: {
+              gte: startOfDayUTC,
+              lte: endOfDayUTC,
+            },
+          },
+          {
+            date: {
+              gte: targetDate,
+              lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
+            },
+          },
+        ],
       },
     });
 
+    const holiday = holidays.length > 0 ? holidays[0] : null;
     const isHoliday = !!holiday;
 
     const employees = await prisma.employee.findMany({

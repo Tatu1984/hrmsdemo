@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
-// Real-time employee status API
-// Returns current status of all employees: ACTIVE, IDLE, BUSY, OFFLINE
+// Real-time employee status API with bot detection
+// Returns current status of all employees: ACTIVE, IDLE, BUSY, AWAY, OFFLINE, SUSPICIOUS
+// Now includes detection of auto-clickers and mouse jigglers
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get today's attendance for all employees
+    // Get today's attendance for all employees with more activity logs for bot detection
     const todayAttendance = await prisma.attendance.findMany({
       where: {
         date: {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
           orderBy: {
             timestamp: 'desc',
           },
-          take: 1, // Get most recent activity
+          take: 5, // Get last 5 activities to check for pattern
         },
       },
     });
@@ -79,6 +80,8 @@ export async function GET(request: NextRequest) {
           idleTime: 0,
           lastActivity: null,
           lastActivityMinutesAgo: null,
+          suspicious: false,
+          patternType: null,
         };
       }
 
@@ -96,10 +99,12 @@ export async function GET(request: NextRequest) {
           lastActivityMinutesAgo: Math.floor(
             (now.getTime() - new Date(attendance.punchOut).getTime()) / 60000
           ),
+          suspicious: false,
+          patternType: null,
         };
       }
 
-      // Employee is punched in
+      // Employee is punched in - analyze activity
       const lastActivity = attendance.activityLogs[0];
       const lastActivityTime = lastActivity
         ? new Date(lastActivity.timestamp)
@@ -108,6 +113,14 @@ export async function GET(request: NextRequest) {
         (now.getTime() - lastActivityTime.getTime()) / 60000
       );
 
+      // Check for suspicious activity patterns
+      // If recent activities are marked suspicious, flag the employee
+      const recentSuspiciousCount = attendance.activityLogs.filter(
+        (log) => log.suspicious
+      ).length;
+      const isSuspicious = recentSuspiciousCount >= 2; // 2+ suspicious logs = bot detected
+      const latestPattern = attendance.activityLogs.find((log) => log.patternType);
+
       // Calculate current working hours
       const currentHours =
         (now.getTime() - new Date(attendance.punchIn).getTime()) / (1000 * 60 * 60);
@@ -115,8 +128,16 @@ export async function GET(request: NextRequest) {
       let status: string;
       let statusColor: string;
 
-      if (minutesSinceLastActivity <= 5) {
-        // Active in last 5 minutes
+      // CRITICAL: If suspicious activity detected, override status
+      if (isSuspicious) {
+        status = 'SUSPICIOUS';
+        statusColor = 'red';
+      } else if (lastActivity && !lastActivity.active) {
+        // Last heartbeat reported as inactive (could be idle or bot)
+        status = 'IDLE';
+        statusColor = 'yellow';
+      } else if (minutesSinceLastActivity <= 5) {
+        // Active in last 5 minutes with genuine activity
         status = 'ACTIVE';
         statusColor = 'green';
       } else if (minutesSinceLastActivity <= 15) {
@@ -139,6 +160,9 @@ export async function GET(request: NextRequest) {
         idleTime: attendance.idleTime || 0,
         lastActivity: lastActivityTime,
         lastActivityMinutesAgo: minutesSinceLastActivity,
+        suspicious: isSuspicious,
+        patternType: isSuspicious && latestPattern ? latestPattern.patternType : null,
+        patternDetails: isSuspicious && latestPattern ? latestPattern.patternDetails : null,
       };
     });
 
@@ -148,6 +172,7 @@ export async function GET(request: NextRequest) {
       idle: employeeStatuses.filter((e) => e.status === 'IDLE').length,
       away: employeeStatuses.filter((e) => e.status === 'AWAY').length,
       offline: employeeStatuses.filter((e) => e.status === 'OFFLINE').length,
+      suspicious: employeeStatuses.filter((e) => e.status === 'SUSPICIOUS').length,
       total: employees.length,
     };
 

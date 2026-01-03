@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EditAttendanceDialog } from '@/components/admin/EditAttendanceDialog';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, RefreshCw, Play, Pause } from 'lucide-react';
+import { formatHoursMinutes } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 interface AttendanceRecord {
   id: string;
@@ -35,6 +37,9 @@ export default function AttendanceEditPage() {
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [holidays, setHolidays] = useState<any[]>([]);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -46,6 +51,23 @@ export default function AttendanceEditPage() {
       fetchHolidays();
     }
   }, [selectedEmployeeId, currentMonth]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (autoRefresh && selectedEmployeeId) {
+      intervalId = setInterval(() => {
+        fetchMonthAttendance();
+      }, 30000); // Refresh every 30 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [autoRefresh, selectedEmployeeId, currentMonth]);
 
   const fetchEmployees = async () => {
     try {
@@ -59,29 +81,68 @@ export default function AttendanceEditPage() {
     }
   };
 
+  // Helper to format date as YYYY-MM-DD in local timezone (not UTC)
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchMonthAttendance = async () => {
     if (!selectedEmployeeId) return;
 
     setLoading(true);
+    setError(null);
+
     try {
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
 
-      const startDate = firstDay.toISOString().split('T')[0];
-      const endDate = lastDay.toISOString().split('T')[0];
+      // Use local date format to avoid timezone issues
+      // toISOString() converts to UTC which causes issues for timezones ahead of UTC
+      const startDate = formatLocalDate(firstDay);
+      const endDate = formatLocalDate(lastDay);
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       const response = await fetch(
-        `/api/attendance?employeeId=${selectedEmployeeId}&startDate=${startDate}&endDate=${endDate}`
+        `/api/attendance?employeeId=${selectedEmployeeId}&startDate=${startDate}&endDate=${endDate}`,
+        { signal: controller.signal }
       );
+
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
         setAttendanceRecords(data);
+        setLastRefresh(new Date());
+      } else {
+        // Handle non-OK response
+        const errorText = await response.text().catch(() => response.statusText);
+        console.error('Attendance API error:', response.status, errorText);
+        setError(`Failed to load: ${response.status} ${response.statusText}`);
+        setAttendanceRecords([]);
+        setLastRefresh(new Date());
       }
-    } catch (error) {
-      console.error('Error fetching attendance:', error);
+    } catch (err: any) {
+      console.error('Error fetching attendance:', err);
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError('Failed to load attendance data. Please try again.');
+      }
+      setAttendanceRecords([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualRefresh = () => {
+    fetchMonthAttendance();
+    fetchHolidays();
   };
 
   const fetchHolidays = async () => {
@@ -282,7 +343,7 @@ export default function AttendanceEditPage() {
           )}
           {attendance && attendance.totalHours !== null && attendance.totalHours > 0 && (
             <div className="text-xs text-gray-600 mt-1">
-              {attendance.totalHours.toFixed(2)}h
+              {formatHoursMinutes(attendance.totalHours)}
             </div>
           )}
         </div>
@@ -333,27 +394,68 @@ export default function AttendanceEditPage() {
       {selectedEmployeeId && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 {selectedEmployee?.name} - Attendance Calendar
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={previousMonth}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm font-medium min-w-[150px] text-center">
-                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </span>
-                <Button variant="outline" size="sm" onClick={nextMonth}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Refresh Controls */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualRefresh}
+                    disabled={loading}
+                    title="Refresh now"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="auto-refresh"
+                      checked={autoRefresh}
+                      onCheckedChange={setAutoRefresh}
+                    />
+                    <Label htmlFor="auto-refresh" className="text-xs cursor-pointer">
+                      Auto (30s)
+                    </Label>
+                  </div>
+                  {lastRefresh && (
+                    <span className="text-xs text-gray-500">
+                      Last: {lastRefresh.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+                {/* Month Navigation */}
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={previousMonth}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm font-medium min-w-[150px] text-center">
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={nextMonth}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="py-12 text-center text-gray-500">Loading attendance data...</div>
+              <div className="py-12 text-center text-gray-500">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                Loading attendance data...
+              </div>
+            ) : error ? (
+              <div className="py-12 text-center">
+                <div className="text-red-500 mb-4">{error}</div>
+                <Button variant="outline" onClick={handleManualRefresh}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
             ) : (
               <>
                 <div className="mb-4 flex gap-4 text-xs flex-wrap">

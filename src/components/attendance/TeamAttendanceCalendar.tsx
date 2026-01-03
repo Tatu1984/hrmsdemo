@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ChevronLeft, ChevronRight, Users, Clock, Coffee, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths } from 'date-fns';
+import { formatHoursMinutes } from '@/lib/utils';
 
 /**
  * Client-side helper functions for weekend cascade logic
@@ -393,7 +394,7 @@ export default function TeamAttendanceCalendar({ employees }: { employees: Emplo
                       )}
                       {stats.avgIdleTime > 0 && (
                         <div className={`text-xs ${getIdleColor(stats.avgIdleTime)}`}>
-                          ⏱ {stats.avgIdleTime.toFixed(1)}h
+                          ⏱ {formatHoursMinutes(stats.avgIdleTime)}
                         </div>
                       )}
                     </div>
@@ -472,27 +473,27 @@ export default function TeamAttendanceCalendar({ employees }: { employees: Emplo
                       <p className="text-gray-500 text-xs">Total Hours</p>
                       <p className="font-semibold flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {record.totalHours?.toFixed(1) || '0'}h
+                        {formatHoursMinutes(record.totalHours)}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-xs">Break</p>
                       <p className="font-semibold flex items-center gap-1">
                         <Coffee className="w-3 h-3" />
-                        {record.breakDuration?.toFixed(1) || '0'}h
+                        {formatHoursMinutes(record.breakDuration)}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-xs">Idle Time</p>
                       <p className={`font-semibold flex items-center gap-1 ${getIdleColor(record.idleTime)}`}>
                         <AlertCircle className="w-3 h-3" />
-                        {record.idleTime?.toFixed(1) || '0'}h
+                        {formatHoursMinutes(record.idleTime)}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-xs">Active Work</p>
                       <p className="font-semibold text-green-600">
-                        {((record.totalHours || 0) - (record.idleTime || 0)).toFixed(1)}h
+                        {formatHoursMinutes((record.totalHours || 0) - (record.idleTime || 0))}
                       </p>
                     </div>
                   </div>
@@ -614,7 +615,7 @@ export default function TeamAttendanceCalendar({ employees }: { employees: Emplo
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Total Break Duration</p>
                       <p className="font-semibold text-purple-700 text-lg">
-                        {selectedAttendanceRecord.breakDuration?.toFixed(1) || '0'}h
+                        {formatHoursMinutes(selectedAttendanceRecord.breakDuration)}
                       </p>
                     </div>
                   </div>

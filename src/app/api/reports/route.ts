@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const employeeId = searchParams.get('employeeId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '100'); // Default 100 records per page
 
     if (!type) {
       return NextResponse.json({ error: 'Report type required' }, { status: 400 });
@@ -25,19 +27,19 @@ export async function GET(request: NextRequest) {
 
     switch (type) {
       case 'attendance':
-        report = await generateAttendanceReport(session, startDate, endDate, employeeId);
+        report = await generateAttendanceReport(session, startDate, endDate, employeeId, page, limit);
         break;
 
       case 'payroll':
-        report = await generatePayrollReport(session, startDate, endDate, employeeId);
+        report = await generatePayrollReport(session, startDate, endDate, employeeId, page, limit);
         break;
 
       case 'tasks':
-        report = await generateTasksReport(session, startDate, endDate, employeeId);
+        report = await generateTasksReport(session, startDate, endDate, employeeId, page, limit);
         break;
 
       case 'leaves':
-        report = await generateLeavesReport(session, startDate, endDate, employeeId);
+        report = await generateLeavesReport(session, startDate, endDate, employeeId, page, limit);
         break;
 
       case 'overview':
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Attendance Report
-async function generateAttendanceReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null) {
+async function generateAttendanceReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null, page: number = 1, limit: number = 100) {
   const where: any = {};
 
   // Role-based filtering
@@ -81,6 +83,9 @@ async function generateAttendanceReport(session: any, startDate: string | null, 
     };
   }
 
+  // Get total count for pagination
+  const totalCount = await prisma.attendance.count({ where });
+
   const attendance = await prisma.attendance.findMany({
     where,
     include: {
@@ -97,6 +102,8 @@ async function generateAttendanceReport(session: any, startDate: string | null, 
     orderBy: {
       date: 'asc',
     },
+    skip: (page - 1) * limit,
+    take: limit,
   });
 
   // Helper function to check if a weekend should be marked absent due to cascade rule
@@ -170,11 +177,17 @@ async function generateAttendanceReport(session: any, startDate: string | null, 
     dateRange: { startDate, endDate },
     stats,
     records: attendance,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
   };
 }
 
 // Payroll Report
-async function generatePayrollReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null) {
+async function generatePayrollReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null, page: number = 1, limit: number = 100) {
   const where: any = {};
 
   // Role-based filtering
@@ -191,6 +204,9 @@ async function generatePayrollReport(session: any, startDate: string | null, end
   if (employeeId && session.role === 'ADMIN') {
     where.employeeId = employeeId;
   }
+
+  // Get total count for pagination
+  const totalCount = await prisma.payroll.count({ where });
 
   const payroll = await prisma.payroll.findMany({
     where,
@@ -209,12 +225,14 @@ async function generatePayrollReport(session: any, startDate: string | null, end
       { year: 'desc' },
       { month: 'desc' },
     ],
+    skip: (page - 1) * limit,
+    take: limit,
   });
 
   const stats = {
-    totalRecords: payroll.length,
+    totalRecords: totalCount,
     totalGross: payroll.reduce((sum, p) => sum + p.grossSalary, 0),
-    totalDeductions: payroll.reduce((sum, p) => sum + p.deductions, 0),
+    totalDeductions: payroll.reduce((sum, p) => sum + p.totalDeductions, 0),
     totalNet: payroll.reduce((sum, p) => sum + p.netSalary, 0),
   };
 
@@ -222,11 +240,17 @@ async function generatePayrollReport(session: any, startDate: string | null, end
     type: 'payroll',
     stats,
     records: payroll,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
   };
 }
 
 // Tasks Report
-async function generateTasksReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null) {
+async function generateTasksReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null, page: number = 1, limit: number = 100) {
   const where: any = {};
 
   // Role-based filtering
@@ -251,6 +275,9 @@ async function generateTasksReport(session: any, startDate: string | null, endDa
     };
   }
 
+  // Get total count for pagination
+  const totalCount = await prisma.task.count({ where });
+
   const tasks = await prisma.task.findMany({
     where,
     include: {
@@ -269,10 +296,12 @@ async function generateTasksReport(session: any, startDate: string | null, endDa
         },
       },
     },
+    skip: (page - 1) * limit,
+    take: limit,
   });
 
   const stats = {
-    totalTasks: tasks.length,
+    totalTasks: totalCount,
     completed: tasks.filter(t => t.status === 'COMPLETED').length,
     inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
     pending: tasks.filter(t => t.status === 'PENDING').length,
@@ -286,11 +315,17 @@ async function generateTasksReport(session: any, startDate: string | null, endDa
     dateRange: { startDate, endDate },
     stats,
     records: tasks,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
   };
 }
 
 // Leaves Report
-async function generateLeavesReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null) {
+async function generateLeavesReport(session: any, startDate: string | null, endDate: string | null, employeeId: string | null, page: number = 1, limit: number = 100) {
   const where: any = {};
 
   // Role-based filtering
@@ -315,6 +350,9 @@ async function generateLeavesReport(session: any, startDate: string | null, endD
     };
   }
 
+  // Get total count for pagination
+  const totalCount = await prisma.leave.count({ where });
+
   const leaves = await prisma.leave.findMany({
     where,
     include: {
@@ -331,10 +369,12 @@ async function generateLeavesReport(session: any, startDate: string | null, endD
     orderBy: {
       startDate: 'desc',
     },
+    skip: (page - 1) * limit,
+    take: limit,
   });
 
   const stats = {
-    totalRequests: leaves.length,
+    totalRequests: totalCount,
     approved: leaves.filter(l => l.status === 'APPROVED').length,
     rejected: leaves.filter(l => l.status === 'REJECTED').length,
     pending: leaves.filter(l => l.status === 'PENDING').length,
@@ -350,6 +390,12 @@ async function generateLeavesReport(session: any, startDate: string | null, endD
     dateRange: { startDate, endDate },
     stats,
     records: leaves,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
   };
 }
 

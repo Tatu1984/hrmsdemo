@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatHoursMinutes } from '@/lib/utils';
 
 interface Employee {
   id: string;
@@ -44,7 +45,8 @@ export function AttendanceDateDetailModal({ date, isOpen, onClose }: AttendanceD
 
     setLoading(true);
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local date methods to avoid timezone issues
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const response = await fetch(`/api/attendance?date=${dateStr}`);
       if (response.ok) {
         const data = await response.json();
@@ -145,13 +147,13 @@ export function AttendanceDateDetailModal({ date, isOpen, onClose }: AttendanceD
                             <td className="px-3 py-2 text-sm">{formatTime(att.punchIn)}</td>
                             <td className="px-3 py-2 text-sm">{formatTime(att.punchOut)}</td>
                             <td className="px-3 py-2 text-sm font-semibold text-green-600">
-                              {att.totalHours ? `${att.totalHours}h` : '-'}
+                              {formatHoursMinutes(att.totalHours)}
                             </td>
                             <td className="px-3 py-2 text-sm text-orange-600">
-                              {att.breakDuration ? `${att.breakDuration}h` : '-'}
+                              {formatHoursMinutes(att.breakDuration)}
                             </td>
                             <td className="px-3 py-2 text-sm text-pink-600">
-                              {att.idleTime ? `${att.idleTime}h` : '-'}
+                              {formatHoursMinutes(att.idleTime)}
                             </td>
                           </tr>
                         ))}
@@ -174,7 +176,7 @@ export function AttendanceDateDetailModal({ date, isOpen, onClose }: AttendanceD
                             <div className="text-sm text-gray-600">{att.employee.employeeId} • {att.employee.designation}</div>
                           </div>
                           <div className="text-right text-sm">
-                            <div>Work: {att.totalHours ? `${att.totalHours}h` : '-'}</div>
+                            <div>Work: {formatHoursMinutes(att.totalHours)}</div>
                             <div className="text-xs text-gray-500">{formatTime(att.punchIn)} - {formatTime(att.punchOut)}</div>
                           </div>
                         </div>

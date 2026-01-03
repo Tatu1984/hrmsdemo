@@ -148,11 +148,11 @@ export function PayslipPrintView({ payroll, companyProfile }: PayslipPrintViewPr
             {companyProfile?.logo ? (
               <img src={companyProfile.logo} alt="Company Logo" className="max-h-12 max-w-full object-contain" />
             ) : (
-              <div className="text-blue-600 font-bold text-lg">HRMS</div>
+              <div className="text-orange-500 font-bold text-lg">∞ INFINITITECH</div>
             )}
           </div>
           <div className="col-span-10 text-center py-1">
-            <div className="text-base font-bold">{companyProfile?.companyName || 'Your Company Name'}</div>
+            <div className="text-base font-bold">{companyProfile?.companyName || 'Infiniti Tech Partners'}</div>
             <div className="text-xs">{companyAddress}</div>
           </div>
         </div>
