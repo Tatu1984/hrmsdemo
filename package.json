@@ -58,6 +58,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "canvas": "^3.2.1",
+    "docx": "^9.5.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.6",
     "prisma": "^6.17.1",
