@@ -35,7 +35,8 @@ export default function DeleteEmployeeButton({ employeeId, employeeName }: Delet
       });
 
       if (!res.ok) {
-        throw new Error('Failed to delete employee');
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || 'Failed to delete employee');
       }
 
       setOpen(false);

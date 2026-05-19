@@ -132,19 +132,64 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete associated user first
-    await prisma.user.deleteMany({
-      where: { employeeId: params.id },
-    });
+    const employeeId = params.id;
 
-    // Delete employee
-    await prisma.employee.delete({
-      where: { id: params.id },
-    });
+    const existing = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    // Employee has many related records across the schema. Most relations do NOT
+    // have onDelete: Cascade, so a bare prisma.employee.delete() fails with a FK
+    // violation. Clean everything up in a transaction, then delete the employee.
+    await prisma.$transaction(
+      async (tx) => {
+        // Unlink subordinates so they're not orphaned by the cascade
+        await tx.employee.updateMany({
+          where: { reportingHeadId: employeeId },
+          data: { reportingHeadId: null },
+        });
+
+        // FK-related rows that would block the delete
+        await tx.task.deleteMany({ where: { assignedTo: employeeId } });
+        await tx.projectMember.deleteMany({ where: { employeeId } });
+        await tx.payroll.deleteMany({ where: { employeeId } });
+        await tx.leave.deleteMany({ where: { employeeId } });
+        await tx.message.deleteMany({ where: { senderId: employeeId } });
+        // ActivityLog cascades from Attendance
+        await tx.attendance.deleteMany({ where: { employeeId } });
+
+        // Loosely-coupled rows (no FK but reference the employee by id)
+        await tx.dailyWorkUpdate.deleteMany({ where: { employeeId } });
+        await tx.salesTarget.deleteMany({ where: { employeeId } });
+        await tx.browserActivityLog.deleteMany({ where: { employeeId } });
+        await tx.developerCommit.deleteMany({ where: { employeeId } });
+        await tx.integrationUserMapping.deleteMany({ where: { employeeId } });
+        await tx.aIPrediction.deleteMany({ where: { employeeId } });
+        await tx.aISkillGap.deleteMany({ where: { employeeId } });
+        await tx.aILearningRecommendation.deleteMany({ where: { employeeId } });
+        await tx.aIMentorMatch.deleteMany({
+          where: { OR: [{ mentorId: employeeId }, { menteeId: employeeId }] },
+        });
+        await tx.aIChatSession.deleteMany({ where: { employeeId } });
+
+        // Linked user account
+        await tx.user.deleteMany({ where: { employeeId } });
+
+        // BankingDetails + EmployeeDocument cascade via the schema, so the
+        // employee row can finally go.
+        await tx.employee.delete({ where: { id: employeeId } });
+      },
+      { timeout: 30000 }
+    );
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete employee error:', error);
-    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
+    const message =
+      error?.code === 'P2003'
+        ? 'Cannot delete employee: related records still reference them.'
+        : error?.message || 'Failed to delete employee';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
